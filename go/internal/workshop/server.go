@@ -64,7 +64,7 @@ func readJSON(resp *http.Response, out any) error {
 	return json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(out)
 }
 
-// Discover follows the 2025-11-25 issuer-path discovery order, validating issuer equality.
+// Discover follows the MCP authorization spec issuer-path discovery order, validating issuer equality.
 func Discover(issuer string) (map[string]any, error) {
 	if e := TrustedURL(issuer); e != nil {
 		return nil, e

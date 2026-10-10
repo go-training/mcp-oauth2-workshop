@@ -1,6 +1,8 @@
 # 驗證紀錄
 
-教材基準：MCP Authorization **2025-11-25**。本頁區分已執行的本機驗證與尚待現場服務的彩排，不將 mock 當作 Signet。
+教材基準：MCP Authorization **2026-07-28**。本頁區分已執行的本機驗證與尚待現場服務的彩排，不將 mock 當作 Signet。
+
+MCP 傳輸層使用 2026-07-28（無 `initialize` 交握，Go go-sdk v1.8.0、Python `mcp` 2.3.0），測試與參考 Client 皆以此版本呼叫。Claude Code / Codex CLI 對新版傳輸的支援尚未核對，需在彩排時確認。
 
 ## 已執行
 

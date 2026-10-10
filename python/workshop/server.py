@@ -15,7 +15,7 @@ from urllib.parse import quote_plus, urlsplit
 import httpx
 import jwt
 import uvicorn
-from mcp.server.fastmcp import FastMCP
+from mcp.server.mcpserver import MCPServer
 from mcp.server.transport_security import TransportSecuritySettings
 from starlette.concurrency import run_in_threadpool
 from starlette.responses import JSONResponse, PlainTextResponse
@@ -316,17 +316,7 @@ class Authorization:
 def create_app(config):
     if config.lab not in range(1, 7):
         raise ValueError("lab must be 1..6")
-    mcp = FastMCP(
-        f"workshop-python-lab{config.lab:02d}",
-        stateless_http=True,
-        json_response=True,
-        transport_security=TransportSecuritySettings(
-            allowed_hosts=[urlsplit(config.resource).netloc, "localhost:*", "127.0.0.1:*"],
-            allowed_origins=[
-                f"{urlsplit(config.resource).scheme}://{urlsplit(config.resource).netloc}"
-            ],
-        ),
-    )
+    mcp = MCPServer(f"workshop-python-lab{config.lab:02d}")
     notes = {}
 
     @mcp.tool()
@@ -353,7 +343,17 @@ def create_app(config):
         own.append(text)
         return {"notes": list(own)}
 
-    return Authorization(mcp.streamable_http_app(), config)
+    app = mcp.streamable_http_app(
+        stateless_http=True,
+        json_response=True,
+        transport_security=TransportSecuritySettings(
+            allowed_hosts=[urlsplit(config.resource).netloc, "localhost:*", "127.0.0.1:*"],
+            allowed_origins=[
+                f"{urlsplit(config.resource).scheme}://{urlsplit(config.resource).netloc}"
+            ],
+        ),
+    )
+    return Authorization(app, config)
 
 
 def run(lab):

@@ -16,7 +16,7 @@ jobs:
           cache-dependency-path: go/go.sum
       - uses: astral-sh/setup-uv@v6
         with:
-          version: '0.10.10'
+          version: '0.13.0'
           python-version: '3.12'
           enable-cache: true
           cache-dependency-glob: python/uv.lock

@@ -45,7 +45,7 @@ curl http://localhost:8000/healthz
 
 ## 觀察與練習
 
-- 找到 `initialize`、`tools/list`、`tools/call`；理解 Client / Server 的角色即可，不從零實作 JSON-RPC。
+- 找到 `server/discover`、`tools/list`、`tools/call`（2026-07-28 版沒有 `initialize` 交握）；理解 Client / Server 的角色即可，不從零實作 JSON-RPC。
 - 在 Go 的 `NewHandler` / Python 的 `create_app` 找到三個工具定義，修改 `whoami` 的描述並重啟。
 - 思考：如果這是公司的工具，誰能呼叫？Client 傳入 `X-MCP-Subject` 能代表真實身分嗎？後面各關都不能信任這種自稱身分。
 

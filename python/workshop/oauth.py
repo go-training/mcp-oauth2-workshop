@@ -20,6 +20,8 @@ import httpx
 
 from workshop.server import discover, validate_resource
 
+PROTOCOL_VERSION = "2026-07-28"
+
 
 def save_token(path, data):
     path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -92,6 +94,12 @@ def login(args):
         server.server_close()
     if not result or "error" in result or not result.get("code"):
         raise ValueError("authorization denied or timed out")
+    # RFC 9207: compare iss exactly; reject a missing iss when the server advertises it.
+    if (
+        metadata.get("authorization_response_iss_parameter_supported") is True
+        and "iss" not in result
+    ):
+        raise ValueError("callback missing issuer")
     if "iss" in result and result["iss"] != args.issuer:
         raise ValueError("callback issuer mismatch")
     with httpx.Client(timeout=10, follow_redirects=False) as client:
@@ -128,7 +136,10 @@ def call(args):
         raise ValueError("negative audience exercise is limited to local workshop servers")
     headers = {
         "Accept": "application/json, text/event-stream",
-        "MCP-Protocol-Version": "2025-11-25",
+        # MCP 2026-07-28: no initialize handshake; each request carries version and method headers.
+        "MCP-Protocol-Version": PROTOCOL_VERSION,
+        "Mcp-Method": "tools/call",
+        "Mcp-Name": args.tool,
     }
     if args.token_file.exists():
         stored = json.loads(args.token_file.read_text())
@@ -137,45 +148,24 @@ def call(args):
             raise ValueError("token resource differs; use --allow-cross-resource only for Lab 04")
         headers["Authorization"] = "Bearer " + stored["access_token"]
     with httpx.Client(timeout=10, follow_redirects=False) as client:
-        initialize = client.post(
-            args.resource,
-            headers=headers,
-            json={
-                "jsonrpc": "2.0",
-                "id": 1,
-                "method": "initialize",
-                "params": {
-                    "protocolVersion": "2025-11-25",
-                    "capabilities": {},
-                    "clientInfo": {"name": "workshop-probe", "version": "1.0.0"},
-                },
-            },
-        )
-        if initialize.status_code != 200:
-            print(
-                initialize.status_code,
-                initialize.headers.get("www-authenticate", ""),
-                initialize.text,
-            )
-            return 1
-        session = initialize.headers.get("mcp-session-id")
-        if session:
-            headers["Mcp-Session-Id"] = session
-        client.post(
-            args.resource,
-            headers=headers,
-            json={"jsonrpc": "2.0", "method": "notifications/initialized"},
-        )
         response = client.post(
             args.resource,
             headers=headers,
             json={
                 "jsonrpc": "2.0",
-                "id": 2,
+                "id": 1,
                 "method": "tools/call",
                 "params": {
                     "name": args.tool,
                     "arguments": {"text": args.text} if args.tool == "create_note" else {},
+                    "_meta": {
+                        "io.modelcontextprotocol/protocolVersion": PROTOCOL_VERSION,
+                        "io.modelcontextprotocol/clientInfo": {
+                            "name": "workshop-probe",
+                            "version": "1.0.0",
+                        },
+                        "io.modelcontextprotocol/clientCapabilities": {},
+                    },
                 },
             },
         )

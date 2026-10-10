@@ -2,7 +2,7 @@
 
 讓 AI Agent、MCP Server 與 CLI 安全登入的實作工作坊。
 
-跟著六個小關卡，你會親手看到：一個沒有授權的 MCP Server 有多危險、OAuth 2.0 + PKCE 如何登入、Token 如何被驗證、撤銷，以及如何把授權集中到 Kong Gateway。教材以 **[MCP Authorization 2025-11-25](https://modelcontextprotocol.io/specification/2025-11-25/basic/authorization)** 為基準。
+跟著六個小關卡，你會親手看到：一個沒有授權的 MCP Server 有多危險、OAuth 2.0 + PKCE 如何登入、Token 如何被驗證、撤銷，以及如何把授權集中到 Kong Gateway。教材以 **[MCP Authorization 2026-07-28](https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization/index)** 為基準。
 
 - 活動：[Hello World Dev Conference 2026](https://hwdc.ithome.com.tw/2026/lab/4993)
 - 時間：2026/10/14；13:00–13:30 環境準備，13:30–15:00 正式課程（活動頁另列 10/15 同內容場次）
@@ -163,6 +163,8 @@ Server 提供三個工具：`whoami`、`list_notes`、`create_note`。筆記只�
 
 ## 設計取捨（進階，可課後閱讀）
 
+- 授權與 MCP 傳輸層皆以 2026-07-28 為準：授權流程（discovery、PKCE、`resource` 參數、`iss` 檢查、scope 與 403 `insufficient_scope`）照授權規範；傳輸層已取消 `initialize` 交握，每個請求都帶 `MCP-Protocol-Version`、`Mcp-Method`、`Mcp-Name` 與 `_meta`。Go 使用 go-sdk v1.8.0（`Stateless: true`），Python 使用 `mcp` 2.3.0（`stateless_http=True`）。Claude Code / Codex CLI 是否已支援新版傳輸、不支援時如何退回舊版，尚未核對。
+- 參考 Client 依 RFC 9207 檢查回呼的 `iss`：Signet 宣告 `authorization_response_iss_parameter_supported` 時，缺少 `iss` 就拒絕；有 `iss` 時必須與記錄的 issuer 完全相同。
 - Lab 01 刻意沒有授權；Lab 02 刻意只回 discovery challenge、尚不接受 Token。這兩關是明確的教學中間狀態，不是 bug。
 - Labs 03–05 使用 RS256 + JWKS，這是本教材的選擇，MCP 規範並未強制使用 JWT。所有受保護關卡從一開始就驗證 audience。
 - Signet access token 必須是 `type=access`，refresh token 或 ID token 不能呼叫 MCP。
@@ -190,7 +192,7 @@ Server 提供三個工具：`whoami`、`list_notes`、`create_note`。筆記只�
 
 ## 參考
 
-- [MCP Authorization 2025-11-25](https://modelcontextprotocol.io/specification/2025-11-25/basic/authorization)
+- [MCP Authorization 2026-07-28](https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization/index)
 - [Signet](https://signet.wu-boy.com/)
 - [Kong MCP OAuth2 Plugin](https://github.com/go-signet/kong-mcp-oauth2)
 - [Go MCP SDK](https://github.com/modelcontextprotocol/go-sdk)、[Python MCP SDK](https://github.com/modelcontextprotocol/python-sdk)

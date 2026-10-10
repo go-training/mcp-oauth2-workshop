@@ -25,6 +25,8 @@ import (
 	"github.com/go-training/mcp-oauth2-workshop/go/internal/workshop"
 )
 
+const protocolVersion = "2026-07-28"
+
 var client = &http.Client{Timeout: 10 * time.Second, CheckRedirect: func(_ *http.Request, _ []*http.Request) error { return http.ErrUseLastResponse }}
 
 type storedToken struct {
@@ -124,6 +126,10 @@ func login(issuer, resource, id, scope, path string, port int) error {
 	if callback.Get("error") != "" || callback.Get("code") == "" {
 		return errors.New("authorization denied")
 	}
+	// RFC 9207: compare iss exactly; reject a missing iss when the server advertises it.
+	if supported, _ := m["authorization_response_iss_parameter_supported"].(bool); supported && !callback.Has("iss") {
+		return errors.New("callback missing issuer")
+	}
 	if callback.Has("iss") && callback.Get("iss") != issuer {
 		return errors.New("callback issuer mismatch")
 	}
@@ -185,32 +191,17 @@ func call(resource, path, tool, text string, cross bool) error {
 	if t.AccessToken != "" && t.Resource != resource && !cross {
 		return errors.New("different resource; use -allow-cross-resource only for Lab 04")
 	}
-	h := http.Header{"Accept": {"application/json, text/event-stream"}, "Mcp-Protocol-Version": {"2025-11-25"}}
-	resp, e := rpc(resource, t.AccessToken, map[string]any{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": map[string]any{"protocolVersion": "2025-11-25", "capabilities": map[string]any{}, "clientInfo": map[string]string{"name": "workshop-go-probe", "version": "1.0.0"}}}, h)
-	if e != nil {
-		return e
-	}
-	if resp.StatusCode != 200 {
-		defer resp.Body.Close()
-		fmt.Println(resp.StatusCode, resp.Header.Get("WWW-Authenticate"))
-		return errors.New("initialize denied")
-	}
-	io.Copy(io.Discard, resp.Body)
-	resp.Body.Close()
-	if session := resp.Header.Get("Mcp-Session-Id"); session != "" {
-		h.Set("Mcp-Session-Id", session)
-	}
-	resp, e = rpc(resource, t.AccessToken, map[string]any{"jsonrpc": "2.0", "method": "notifications/initialized"}, h)
-	if e != nil {
-		return e
-	}
-	io.Copy(io.Discard, resp.Body)
-	resp.Body.Close()
+	// MCP 2026-07-28: no initialize handshake; every request carries its version in headers and _meta.
+	h := http.Header{"Accept": {"application/json, text/event-stream"}, "Mcp-Protocol-Version": {protocolVersion}, "Mcp-Method": {"tools/call"}, "Mcp-Name": {tool}}
 	args := map[string]any{}
 	if tool == "create_note" {
 		args["text"] = text
 	}
-	resp, e = rpc(resource, t.AccessToken, map[string]any{"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": map[string]any{"name": tool, "arguments": args}}, h)
+	resp, e := rpc(resource, t.AccessToken, map[string]any{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": map[string]any{"name": tool, "arguments": args, "_meta": map[string]any{
+		"io.modelcontextprotocol/protocolVersion":    protocolVersion,
+		"io.modelcontextprotocol/clientInfo":         map[string]string{"name": "workshop-go-probe", "version": "1.0.0"},
+		"io.modelcontextprotocol/clientCapabilities": map[string]any{},
+	}}}, h)
 	if e != nil {
 		return e
 	}

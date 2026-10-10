@@ -25,9 +25,15 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 
 ROOT = Path(__file__).resolve().parents[1]
 PYTHON = ROOT / "python/.venv/bin/python"
+PROTOCOL_VERSION = "2026-07-28"
+META = {
+    "io.modelcontextprotocol/protocolVersion": PROTOCOL_VERSION,
+    "io.modelcontextprotocol/clientInfo": {"name": "test", "version": "1"},
+    "io.modelcontextprotocol/clientCapabilities": {},
+}
 HEADERS = {
     "Accept": "application/json, text/event-stream",
-    "MCP-Protocol-Version": "2025-11-25",
+    "MCP-Protocol-Version": PROTOCOL_VERSION,
 }
 
 
@@ -96,6 +102,7 @@ def issuer():
                         revocation_endpoint=fixture.url + "/revoke",
                         introspection_endpoint=fixture.url + "/introspect",
                         code_challenge_methods_supported=["S256"],
+                        authorization_response_iss_parameter_supported=True,
                     ),
                 )
             elif path == "/jwks":
@@ -260,19 +267,15 @@ def start(language, issuer, tmp_path):
 def rpc(
     resource, token=None, method="tools/call", name="whoami", arguments=None, extra=None
 ):
-    headers = dict(HEADERS)
+    headers = dict(HEADERS, **{"Mcp-Method": method})
     if token:
         headers["Authorization"] = "Bearer " + token
+    params = {}
+    if method == "tools/call":
+        params = {"name": name, "arguments": arguments or {}}
+        headers["Mcp-Name"] = name
+    params["_meta"] = META
     headers.update(extra or {})
-    params = {"name": name, "arguments": arguments or {}}
-    if method == "initialize":
-        params = {
-            "protocolVersion": "2025-11-25",
-            "capabilities": {},
-            "clientInfo": {"name": "test", "version": "1"},
-        }
-    if method == "tools/list":
-        params = {}
     return httpx.post(
         resource,
         headers=headers,
@@ -290,9 +293,9 @@ def data(response):
 
 def test_lab01_baseline(start):
     resource = start(1)
-    response = rpc(resource, method="initialize")
+    response = rpc(resource, method="server/discover")
     assert response.status_code == 200
-    assert "tools" in response.json()["result"]["capabilities"]
+    assert PROTOCOL_VERSION in response.json()["result"]["supportedVersions"]
     tools = rpc(resource, method="tools/list").json()["result"]["tools"]
     assert {t["name"] for t in tools} == {"whoami", "list_notes", "create_note"}
     assert data(rpc(resource))["subject"] == "anonymous"
@@ -527,18 +530,11 @@ def test_reference_client_reports_jsonrpc_error(language, tmp_path):
 
         def do_POST(self):
             body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
-            if body["method"] == "initialize":
-                reply = {
-                    "jsonrpc": "2.0",
-                    "id": 1,
-                    "result": {"protocolVersion": "2025-11-25", "capabilities": {}},
-                }
-            else:
-                reply = {
-                    "jsonrpc": "2.0",
-                    "id": 2,
-                    "error": {"code": -32601, "message": "No such method"},
-                }
+            reply = {
+                "jsonrpc": "2.0",
+                "id": body["id"],
+                "error": {"code": -32601, "message": "No such method"},
+            }
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.end_headers()
@@ -618,6 +614,8 @@ def test_gateway_config_and_python_host(tmp_path, monkeypatch):
             "/mcp",
             headers={
                 **HEADERS,
+                "Mcp-Method": "tools/call",
+                "Mcp-Name": "whoami",
                 "X-Workshop-Gateway": secret,
                 "X-MCP-Subject": "alice",
                 "X-MCP-Scope": "notes:read",
@@ -628,7 +626,7 @@ def test_gateway_config_and_python_host(tmp_path, monkeypatch):
                 "jsonrpc": "2.0",
                 "id": 1,
                 "method": "tools/call",
-                "params": {"name": "whoami", "arguments": {}},
+                "params": {"name": "whoami", "arguments": {}, "_meta": META},
             },
         )
         assert data(response)["subject"] == "alice"
@@ -636,6 +634,8 @@ def test_gateway_config_and_python_host(tmp_path, monkeypatch):
             "/mcp",
             headers={
                 **HEADERS,
+                "Mcp-Method": "tools/call",
+                "Mcp-Name": "whoami",
                 "Host": "evil.example",
                 "X-Workshop-Gateway": secret,
                 "X-MCP-Subject": "alice",
