@@ -1,6 +1,7 @@
 # MCP OAuth 2.0 Workshop
 
 [![CI](https://github.com/go-training/mcp-oauth2-workshop/actions/workflows/verify.yml/badge.svg?branch=main)](https://github.com/go-training/mcp-oauth2-workshop/actions/workflows/verify.yml?query=branch%3Amain)
+[![Trivy](https://github.com/go-training/mcp-oauth2-workshop/actions/workflows/trivy.yml/badge.svg?branch=main)](https://github.com/go-training/mcp-oauth2-workshop/actions/workflows/trivy.yml?query=branch%3Amain)
 
 讓 AI Agent、MCP Server 與 CLI 安全登入的實作工作坊。
 
@@ -194,7 +195,7 @@ Server 提供三個工具：`whoami`、`list_notes`、`create_note`。筆記只�
 
 GitHub Actions 在 push、pull request 或手動執行時，會分別跑 Go 格式檢查、`go vet` 與 `go test -race`，以及 Python lint、pytest 和兩種 Compose profile 驗證。pytest 會同時測試 Go / Python，因此測試環境需要兩種語言。
 
-獨立的 [Trivy](https://github.com/aquasecurity/trivy-action) job 會掃描 repository 的 Go / Python 相依套件漏洞與 secrets；發現 HIGH 或 CRITICAL 問題即失敗，包含尚無修復版本的漏洞。結果顯示於 Actions log；此掃描不涵蓋建置後的容器映像。
+獨立的 [Trivy workflow](.github/workflows/trivy.yml) 會在 push、pull request 或手動執行時，掃描 repository 的 Go / Python 相依套件漏洞與 secrets；發現 HIGH 或 CRITICAL 問題即失敗，包含尚無修復版本的漏洞。結果顯示於 Actions log，可透過上方 Trivy badge 獨立追蹤；此掃描不涵蓋建置後的容器映像。
 
 ## 參考
 

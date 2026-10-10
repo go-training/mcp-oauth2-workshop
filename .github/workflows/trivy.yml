@@ -1,0 +1,26 @@
+name: Trivy
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  trivy:
+    name: Trivy vulnerability and secret scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Scan repository
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          version: 'v0.69.3'
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln,secret
+          format: table
+          severity: HIGH,CRITICAL
+          exit-code: '1'
+          timeout: 5m
+          skip-dirs: .git,.cache
