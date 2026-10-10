@@ -1,7 +1,7 @@
 # MCP Authorization Workshop implementation plan
 
 ## Goal
-Provide six runnable labs in Go and Python, using the MCP authorization specification dated 2025-11-25. Participants choose Claude Code or Codex CLI and one programming language. The instructor provisions a fresh shared Signet authorization server before class. Kong appears only in Lab 06. This implements the curriculum already agreed in the planning conversation.
+Provide six runnable labs in Go and Python, using the MCP authorization specification dated 2025-11-25. Participants choose Claude Code or Codex CLI and one programming language. The instructor provisions a fresh shared Signet authorization server before class. Learners register their own public Client App in the Signet UI during Lab 01; the instructor configures business scopes/resources and approves each app. A shared public Client App is a fallback only. Kong appears only in Lab 06. This implements the curriculum already agreed in the planning conversation.
 
 ## Architecture
 ```mermaid

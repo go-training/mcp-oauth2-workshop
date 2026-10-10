@@ -15,7 +15,7 @@ set +a
 
 ## 操作
 
-先停止 Lab 01；載入講師提供的 `.env`，再啟動：
+先停止 Lab 01；載入自己從 `.env.example` 建立的 `.env`，再啟動。此關不需要 Client ID 已核准，講師可同時處理 Lab 01 提交的 App：
 
 ```bash
 ./scripts/lab.sh 02 "$LAB_LANGUAGE"

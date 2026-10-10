@@ -13,6 +13,10 @@ source .env
 set +a
 ```
 
+## 進入本關前
+
+先依 [Client App 教學](../../docs/signet-client-app.md) 確認自己的 App 已是 active，講師已加入 `notes:read notes:write` 與三個 allowed resources；把自己的 Client ID 填入 `.env` 並重新載入。若仍在等待，使用教學中的講師共用 App 備援，不要跳過授權檢查。
+
 ## 操作
 
 停止上一關，啟動 JWT 驗證：
@@ -40,7 +44,7 @@ Token 寫入本機 0600 檔案，不輸出 Token 本文。PKCE Client 綁定 `12
 - 從瀏覽器授權 URL 找到 `client_id`、`redirect_uri`、`state`、`code_challenge_method=S256` 與 `resource`。不要展示 callback 的 code。
 - Token request 也包含同一個 `resource` 與 `code_verifier`。Client 驗證 state，metadata 不宣告 S256 時拒絕登入。
 - Server 使用成熟 JWT 函式庫驗證 RS256、issuer、audience、expiry，並額外檢查 Signet `type=access`、subject。
-- `client_id` 是公開識別，不等於 secret。介紹 pre-registration / CIMD / DCR；本次自訂 scope 採預先註冊。
+- `client_id` 是公開識別，不等於 secret。介紹 pre-registration / CIMD / DCR；本次由學員在 UI 註冊自己的 App、講師核准，CLI 以已取得的 Client ID 進行 pre-registration 路線。
 
 ## 驗收
 

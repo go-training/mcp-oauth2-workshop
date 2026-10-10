@@ -6,7 +6,9 @@
 | metadata discovery failed | 新終端是否載入 .env；issuer 是否為真正 HTTPS 網址；DNS / TLS 是否可達 |
 | issuer mismatch | BASE_URL、metadata issuer、JWT iss 必須逐字一致 |
 | invalid_target | Signet public Client 的 allowed_resources 是否包含精確 URL；localhost 與 127.0.0.1 不相同 |
-| invalid_scope | 使用管理員預先建立的 public Client，確認允許 notes:read / notes:write；不是未核准 DCR Client |
+| invalid_scope | 自己的 App 需要講師加入 notes:read / notes:write；只完成建立或核准狀態仍不夠 |
+| App 是 pending | 將 Client ID 交給講師設定與核准，先繼續 Lab 02 或使用共用備援 App |
+| UI 不能新增 notes scope / resource | 學員自助介面的限制；由講師在原 App 上設定，詳見 [Client App 教學](signet-client-app.md) |
 | redirect mismatch | 核對 Client 實際產生的 host、port、path 與預先註冊值；不要使用萬用 callback 放寬 |
 | Lab 02 一直 401 | 這是設計，下一關才開始接受 Token |
 | Lab 03 401 | Token 必須是 RS256 access token；檢查 issuer、audience、expiry、kid，勿使用 refresh / ID token |

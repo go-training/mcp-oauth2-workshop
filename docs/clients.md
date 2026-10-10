@@ -34,9 +34,9 @@ codex
 
 ## Lab 03 起：預先註冊的 public Client
 
-先啟動 Lab 03，從 repo 根目錄載入 `.env`。`OAUTH_CLIENT_ID` 是講師建立的 public Client，沒有 secret；不要填入 introspection Client 的 secret。
+先完成 [建立自己的 Client App](signet-client-app.md)，待講師補齊 scope、resource 並核准後啟動 Lab 03，從 repo 根目錄載入 `.env`。`OAUTH_CLIENT_ID` 優先使用自己的 public App ID；等待核准時才用講師共用的備援 ID。public Client 沒有 secret，不要填入 introspection Client 的 secret。
 
-講師應註冊下列**精確** callback：
+學員建立 App 時填入下列**精確** callback，講師核准時複核；共用備援 App 也使用相同設定：
 
 | 用途 | Redirect URI |
 | --- | --- |

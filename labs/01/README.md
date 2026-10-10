@@ -13,7 +13,7 @@ source .env
 set +a
 ```
 
-## 操作
+## 操作 A：連上 MCP（約 4 分鐘）
 
 ```bash
 ./scripts/lab.sh 01 "$LAB_LANGUAGE"
@@ -32,6 +32,17 @@ curl http://localhost:8000/healthz
 
 依 [兩套 CLI 指引](../../docs/clients.md#lab-01未授權版本) 接上 Client。輸入：「請使用 workshop 的 whoami 工具，接著列出筆記。」不要把模型自行回答當成工具呼叫成功，要看工具紀錄。
 
+## 操作 B：登入 Signet，建立自己的 Client App（約 6 分鐘）
+
+依 [學員 Client App 逐步教學](../../docs/signet-client-app.md) 操作：
+
+1. 登入 `https://signet.wu-boy.com`，開啟「開發 → 我的應用程式 → 註冊新應用程式」。
+2. 建立 `hwdc-2026-seat-你的編號`，選 **public**、啟用 **Authorization Code Flow**，取消預設 Device Flow，填入教學列出的三個 callbacks。
+3. 建立階段先選 `openid`，取得自己的 Client ID，查看 pending 狀態，再練習修改 App 描述。
+4. 將座位編號、App 名稱與 Client ID 交給講師核准，繼續 Lab 02；此時不要期待 pending App 可以登入。
+
+`notes:read` / `notes:write` 和 Allowed Resources 由講師在你的 App 上設定。核准後把自己的 ID 放入 `.env`，Lab 03 使用；若尚未完成核准，先用講師共用 public App 備援。App 的 public 是 OAuth 類型，並不代表所有人都能管理你的 App。
+
 ## 觀察與練習
 
 - 找到 `initialize`、`tools/list`、`tools/call`；理解 Client / Server 的角色即可，不從零實作 JSON-RPC。
@@ -40,4 +51,4 @@ curl http://localhost:8000/healthz
 
 ## 驗收
 
-Server 正常回應；兩種程式路線都能呼叫三個工具；AI CLI 確實發出工具請求。此關沒有授權，只綁定本機，不對外開放。
+所選語言的 Server 正常回應，能呼叫三個工具；AI CLI 確實發出工具請求。另已用自己的帳號建立 public App，取得 Client ID 並提交核准。此關沒有授權，只綁定本機，不對外開放。
