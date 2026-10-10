@@ -1,0 +1,65 @@
+# Lab 06：Kong MCP Gateway
+
+[課程首頁](../../README.md) · [Go 入口](../../go/labs/06/main.go) · [Python 入口](../../python/labs/06/main.py)
+
+完整實作：[Go](../../go/internal/workshop/server.go) / [Python](../../python/workshop/server.py)。每關都可直接執行，不需從上一關複製程式。
+
+所有指令從 repo 根目錄執行。每個終端先選語言並載入設定：
+
+```bash
+export LAB_LANGUAGE=go  # 或 python
+set -a
+source .env
+set +a
+```
+
+## 架構目的
+
+最後才加入 Kong：當有許多 MCP Server，共通的 discovery、JWT 驗證與入口 scope 可集中管理；個別工具和資料權限仍由 MCP Server 負責。
+
+這關的 Go/Python backend 不自行驗 JWT，而是驗證 Gateway 共享憑證並讀取可信任身分。Compose 不發布 backend port，使用私有 network；Kong 覆寫 Gateway 憑證並驗證外部 Token。Kong admin API 關閉。
+
+## 操作
+
+課前由講師下載／編譯映像。Docker Compose v2 必須可用。從 repo 根目錄、已載入 `.env` 的終端執行：
+
+```bash
+python3 scripts/configure_gateway.py
+# 產生的 .runtime/kong.yml 與 .env 都含本機憑證，已被 Git 忽略。
+# 選一個 profile，不要同時啟動 go 與 python。
+docker compose --env-file .env -f labs/06/compose.yml --profile "$LAB_LANGUAGE" up --build -d
+curl -i http://localhost:9000/mcp
+curl -s http://localhost:9000/.well-known/oauth-protected-resource/mcp
+```
+
+預期 401 與正確 PRM。Kong 的 resource 是 `http://localhost:9000/mcp`，講師必須事先加入 Signet Client 的 allowed resources。
+
+```bash
+./scripts/oauth.sh "$LAB_LANGUAGE" login --resource http://localhost:9000/mcp --scopes 'notes:read notes:write' --token-file .tokens/lab06.json
+./scripts/oauth.sh "$LAB_LANGUAGE" call --resource http://localhost:9000/mcp --token-file .tokens/lab06.json
+./scripts/oauth.sh "$LAB_LANGUAGE" call --resource http://localhost:9000/mcp --token-file .tokens/lab06.json --tool create_note --text '經過 Kong'
+```
+
+在 Claude Code／Codex 新增另一個名稱 `workshop-gateway`，URL 改成 `http://localhost:9000/mcp`，沿用 [public Client 登入方式](../../docs/clients.md)。必須重新為 Gateway resource 授權，不能沿用 8000 的 Token。
+
+## 對照與練習
+
+- 檢查 [Kong 設定產生器](../../scripts/configure_gateway.py)：issuer、resource path、required scopes。
+- PRM 路徑與 `/mcp` 都需要匹配 Kong route，`strip_path=false` 保留後端的 `/mcp`，`preserve_host=true` 保留 Client 入口 Host。
+- Go `authorize` / Python `Authorization.__call__` 的 Lab 06 分支顯示 Gateway 信任邊界。
+- 使用只含 `notes:read` 的新 Token，`create_note` 仍由 backend 回 403。
+- 用 A（8000）的 Token 打 Gateway（9000），應回 401。
+- 直接傳 `X-MCP-Subject: admin` 不能偽造身分；共用 header 只在 Gateway 信任邊界內使用。
+
+## 撤銷限制
+
+本次固定版本的 plugin 只做離線 JWT 驗證，**Lab 06 不延續 Lab 05 的即時撤銷能力**。不要以「接上 Kong」推論已解決撤銷；可討論在 Gateway 增加狀態檢查，或後端保留 introspection 的取捨，但本 repo 不修改 plugin。
+
+## 驗收與清理
+
+兩種 backend 各自透過 Kong 成功呼叫，錯 audience 被拒、工具 scope 仍有效、後端沒有 host port。容器實測狀態見 [驗證紀錄](../../docs/validation.md)。
+
+```bash
+docker compose --env-file .env -f labs/06/compose.yml --profile "$LAB_LANGUAGE" logs --tail 50
+docker compose --env-file .env -f labs/06/compose.yml --profile "$LAB_LANGUAGE" down
+```
