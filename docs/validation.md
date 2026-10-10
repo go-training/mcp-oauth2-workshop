@@ -37,7 +37,7 @@
 | 項目 | 原因／完成條件 |
 | --- | --- |
 | 新的現場 Signet 端到端驗證 | 部署 URL 與公開 discovery 已確認；仍待 Client ID 與測試身分，依 instructor checklist 彩排 |
-| 學員自助 Client App UI 完整流程 | 已核對 Signet `66f40d5` 原始碼與欄位；瀏覽器控制服務不可用，尚未登入網站驗證建立、核准、自己的 ID 登入；未建立或修改現場 App |
+| 學員自助 Client App UI 完整流程 | 瀏覽器控制服務不可用，尚未登入網站驗證建立、核准、自己的 ID 登入；未建立或修改現場 App |
 | Claude Code / Codex 瀏覽器登入與 step-up | 目前核對文件與旗標，沒有使用真實課程身分完成互動登入 |
 | Kong 容器實際代理 Go / Python | 本機 Docker daemon 未啟動；Compose 設定可檢查，但不是容器 runtime 成功證明 |
 | 60 人集中登入容量 | 需在實際授權服務與會場網路條件下壓測 |
@@ -56,4 +56,4 @@
 ./scripts/check.sh
 ```
 
-Signet 原始碼核對版本與課前設定見 [講師手冊](instructor.md)。
+Signet 服務檢查與課前設定見 [講師手冊](instructor.md)。

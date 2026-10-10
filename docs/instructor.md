@@ -1,25 +1,14 @@
 # 講師：Signet 與現場準備
 
-授權服務使用 **[go-signet/signet](https://github.com/go-signet/signet)**（先前討論的 `signt` 對應此 repo）。已提供工作坊服務 **https://signet.wu-boy.com**，學員不用自行部署。學員在自己的筆電執行 HTTP MCP 與 Claude Code／Codex，瀏覽器 callback 回到自己的筆電，Signet 不需主動連進學員筆電。
+授權服務使用 **[Signet](https://signet.wu-boy.com/)**。已提供工作坊服務 **https://signet.wu-boy.com**，學員不用自行部署。學員在自己的筆電執行 HTTP MCP 與 Claude Code／Codex，瀏覽器 callback 回到自己的筆電，Signet 不需主動連進學員筆電。
 
 ## 服務設定
 
-依 Signet 官方部署文件完成資料庫、使用者登入方式、TLS、備份與必要 secrets。本 repo 不建立真實授權服務，也不保存講師管理員憑證。
+Signet 由講師維運；本教材只涵蓋公開服務的使用與課程 Client 設定，不包含服務內部部署方式。課前確認 HTTPS、使用者登入、RS256 簽章與 PKCE S256 可用。本 repo 不保存講師管理員憑證。
 
-授權行為核對來源：Signet checkout [`a6747be2a6364e4c15bfa5e39524247f5ecc9fd9`](https://github.com/go-signet/signet/tree/a6747be2a6364e4c15bfa5e39524247f5ecc9fd9)。部署若使用其他版本，重新核對以下設定與 API。
+MCP Server / Kong 只取得公開 JWKS；簽章私鑰不得發給學員。
 
-```dotenv
-BASE_URL=https://signet.wu-boy.com
-ENVIRONMENT=production
-JWT_SIGNING_ALGORITHM=RS256
-JWT_PRIVATE_KEY_PATH=/run/secrets/signet-rsa-private.pem
-PKCE_REQUIRED=true
-INTROSPECTION_REQUIRE_OWNERSHIP=true
-```
-
-私鑰只放 Signet。MCP Server / Kong 只取得公開 JWKS，不能把 RSA 私鑰或 HS256 共用密鑰發給學員。
-
-本次採固定 callback URI。若確實需要動態 loopback port，可用 `LOOPBACK_REDIRECT_ANY_PORT_ENABLED=true` 並註冊不含 port 的 loopback URI；host / path 仍需相符，`localhost` 和 `127.0.0.1` 不可互換。固定版本 CLI 的 callback 以 [Client 指引](clients.md) 為準。
+本次採固定 callback URI，請逐一註冊 [Client 指引](clients.md) 中的完整 URL；`localhost` 和 `127.0.0.1` 不可互換。
 
 ## 現場服務公開檢查（2026-10-10）
 
@@ -71,7 +60,7 @@ INTROSPECTION_REQUIRE_OWNERSHIP=true
 - 切換 Client ID 需要重新登入；AI CLI 用 `workshop-fallback` 與 `workshop-personal` 分開設定，避免沿用舊授權快取。
 - 課後由講師停用共用 App，學員不要嘗試管理這個不屬於自己的 App。
 
-這仍是 CLI 使用已註冊 Client ID 的 pre-registration 路線，與自動 DCR / CIMD 不同。DCR 同樣可能 pending，DCR/CIMD 的自助 safe scopes 不包含本課 notes scopes，不能用來跳過講師設定。
+這仍是 CLI 使用已註冊 Client ID 的 pre-registration 路線，與自動 DCR / CIMD 不同。本課不使用 DCR / CIMD，學員依教學取得並填入已核准的 Client ID。
 
 Resource 逐字匹配。相同本機 URL 出現在不同學員電腦是同一個 OAuth resource 識別，**不表示不同筆電已由 audience 隔離**；本課跨資源隔離示範是 8000 / 8001 / 9000 三個識別。學員身分與資料隔離另由 subject 處理；勿交換 Token。
 
@@ -79,7 +68,7 @@ Resource 逐字匹配。相同本機 URL 出現在不同學員電腦是同一個
 
 另為每組建立一組 active confidential Client 憑證，使用 Signet `/oauth/introspect`。不授予管理 API 權限，不使用講師管理員帳密。將 ID/secret 私下提供給該組，放在被 Git 忽略的 `.env`。
 
-保留 `INTROSPECTION_REQUIRE_OWNERSHIP=true`：對另一個 Client 的有效 Token，Signet 可以只回 `{"active":true}`。教材先驗證 JWT，再只取 introspection 的 active 狀態，因此不需要降低 ownership 保護。
+教材先驗證 JWT，再只取 introspection 的 `active` 狀態；不要依賴 introspection 回傳完整的身分或權限欄位。課前用每組憑證確認此流程可用。
 
 ## 端點核對
 
@@ -93,9 +82,9 @@ Resource 逐字匹配。相同本機 URL 出現在不同學員電腦是同一個
 | Authorize | `/oauth/authorize` | 使用者登入／同意 |
 | Token | `/oauth/token` | PKCE code 換 Token，帶 resource |
 | Introspect | `/oauth/introspect` | confidential Client Basic auth，每次請求查 active |
-| Revoke | `/oauth/revoke` | form token；此版本不要求 Client 認證 |
+| Revoke | `/oauth/revoke` | form token；課前確認參考 Client 可完成撤銷 |
 
-`/oauth/revoke` 對不存在或已撤銷的 Token 仍可能回 200；必須再用相同 Token 呼叫 MCP 才能驗收。此端點路徑不保證記錄管理員撤銷 audit event，教材以 Resource Server 的允許／拒絕紀錄為最低證據；若要展示完整管理事件，先彩排 Signet 管理介面的撤銷流程。
+`/oauth/revoke` 對不存在或已撤銷的 Token 仍可能回 200；必須再用相同 Token 呼叫 MCP 才能驗收。教材以 Resource Server 的允許／拒絕紀錄驗收；若要展示管理介面的事件紀錄，另行彩排並確認網站實際顯示的內容。
 
 ## 課前彩排
 

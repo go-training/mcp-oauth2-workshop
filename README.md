@@ -7,7 +7,7 @@
 - 活動：[Hello World Dev Conference 2026](https://hwdc.ithome.com.tw/2026/lab/4993)
 - 場次：2026/10/14；13:00–13:30 環境準備，13:30–15:00 正式課程；活動頁另列 10/15 同內容場次。
 - 容量：60 人。建議 3–4 位助教；環境安裝在課前完成。
-- **授權服務由講師在課前建立全新的 [Signet](https://github.com/go-signet/signet)**，現場服務為 **https://signet.wu-boy.com**（issuer 不含結尾斜線）。學員不用安裝 Signet，也不用在前五關安裝 Kong。
+- **授權服務由講師在課前建立全新的 [Signet](https://signet.wu-boy.com/)**，現場服務為 **https://signet.wu-boy.com**（issuer 不含結尾斜線）。學員不用安裝 Signet，也不用在前五關安裝 Kong。
 - **Kong 只在最後一關登場**，比較 MCP Server 自己處理授權，與 Gateway 集中管理的差異。
 
 > 範例、教材與本機協定測試已提供。現場 issuer 已設定；學員登入後建立自己的 Client App，講師補齊業務權限並核准。講師共用 public App 作為備援。真實 Signet、兩套 AI CLI 登入及 Kong 容器的彩排狀態見 [驗證紀錄](docs/validation.md)；不要將本機測試視為現場整合已完成。
@@ -123,7 +123,7 @@ Device Flow 保留為後續延伸主題，不列入這六關主線；若活動�
 ## 參考
 
 - [MCP Authorization 2025-11-25](https://modelcontextprotocol.io/specification/2025-11-25/basic/authorization)
-- [Signet](https://github.com/go-signet/signet)
+- [Signet](https://signet.wu-boy.com/)
 - [Kong MCP OAuth2 Plugin](https://github.com/go-signet/kong-mcp-oauth2)
 - [Go MCP SDK](https://github.com/modelcontextprotocol/go-sdk)、[Python MCP SDK](https://github.com/modelcontextprotocol/python-sdk)
 - [MCP 基礎工作坊](https://github.com/go-training/mcp-workshop)

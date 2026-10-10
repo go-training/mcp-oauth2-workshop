@@ -35,10 +35,10 @@ set +a
 ## 觀察與練習
 
 - Go：`active`；Python：`Authorization.active`。先完整驗證 JWT，再向 Signet introspection 查詢 `active`。
-- Signet 預設對不同 Client 的 Token 可能只回 `{"active":true}`，所以身分、scope、audience 仍來自已驗證 JWT；不要要求把 ownership 保護關掉。
+- Introspection 回應不一定包含完整 claims；教材只讀取 `active`，身分、scope、audience 仍來自已驗證 JWT。
 - 此範例不快取 active 結果。Signet 逾時、回錯誤或 malformed response 時回 503，不能降級為放行。
 - 對照 Lab 03：同一顆已撤銷但未到期的 Token，離線驗簽仍可能接受，因為 RSA 簽章沒有失效。
-- 日誌顯示允許請求的 subject／jti，以及拒絕原因，沒有 raw token。Signet `/oauth/revoke` 不保證產生管理員撤銷事件；講師若需要完整管理事件追蹤，應另外彩排管理介面。
+- 日誌顯示允許請求的 subject／jti，以及拒絕原因，沒有 raw token。講師若需要展示管理介面的事件紀錄，應另外彩排並確認網站實際顯示的內容。
 
 ## 驗收
 

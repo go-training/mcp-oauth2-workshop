@@ -4,7 +4,7 @@
 
 服務：[https://signet.wu-boy.com](https://signet.wu-boy.com/)。
 
-> 表單欄位與權限依 Signet 原始碼版本 `66f40d5ce6229f8c3f618db98db92286d1379fb8` 核對。目前尚未登入現場網站逐頁彩排；若現場版本或語系不同，請以欄位含義對照，不要為了找不到欄位而改用管理員帳號。
+> 目前尚未登入現場網站逐頁彩排；若現場版本或語系不同，請以欄位含義對照，不要為了找不到欄位而改用管理員帳號。
 
 ## 先理解三件事
 
@@ -165,6 +165,6 @@ AI CLI 備援用新名稱 `workshop-fallback`，將 [Client 指南](clients.md) 
 | 同意畫面是講師的 App 名稱 | CLI 還在用備援 ID；新增自己的 entry 再登入 |
 | 修改 ID 後 whoami 一樣 | 正常，subject 代表登入使用者，不是 Client ID；以同意畫面的 App 名稱及 App 授權紀錄確認 |
 
-## 欄位與行為來源
+## 現場彩排
 
-核對 [Signet 66f40d5](https://github.com/go-signet/signet/tree/66f40d5ce6229f8c3f618db98db92286d1379fb8)：`internal/handlers/user_client.go`、`internal/templates/user_app_form.templ`、`internal/templates/client_shared.templ`、`internal/services/client_user.go`、`internal/services/client_bulk_approve.go`。現場一般使用者畫面與完整核准流程仍列在 [彩排清單](instructor.md)。
+現場一般使用者畫面與完整核准流程仍須依 [彩排清單](instructor.md) 驗證。學員不需要存取 Signet 原始碼。
