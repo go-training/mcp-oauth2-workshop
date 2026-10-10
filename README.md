@@ -190,6 +190,10 @@ Server 提供三個工具：`whoami`、`list_notes`、`create_note`。筆記只�
 
 它會啟動 Go / Python 的六個 Lab 與本機測試用 issuer，涵蓋協定呼叫、PKCE、錯誤 Token、scope、audience、使用者隔離、撤銷與 Gateway 信任邊界。
 
+GitHub Actions 在 push、pull request 或手動執行時，會分別跑 Go 格式檢查、`go vet` 與 `go test -race`，以及 Python lint、pytest 和兩種 Compose profile 驗證。pytest 會同時測試 Go / Python，因此測試環境需要兩種語言。
+
+獨立的 [Trivy](https://github.com/aquasecurity/trivy-action) job 會掃描 repository 的 Go / Python 相依套件漏洞與 secrets；發現 HIGH 或 CRITICAL 問題即失敗，包含尚無修復版本的漏洞。結果顯示於 Actions log；此掃描不涵蓋建置後的容器映像。
+
 ## 參考
 
 - [MCP Authorization 2026-07-28](https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization/index)

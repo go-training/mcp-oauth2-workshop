@@ -7,6 +7,6 @@ go vet ./...
 go test ./...
 cd "$repo_root"
 uv sync --project python --frozen
-uv run --project python ruff check python tests scripts
-uv run --project python ruff format --check python tests scripts
-uv run --project python pytest -q
+uv run --project python --frozen ruff check python tests scripts
+uv run --project python --frozen ruff format --check python tests scripts
+uv run --project python --frozen pytest -q
