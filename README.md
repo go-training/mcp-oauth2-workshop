@@ -180,7 +180,7 @@ Server 提供三個工具：`whoami`、`list_notes`、`create_note`。筆記只�
 - [Claude Code / Codex CLI 設定](docs/clients.md)
 - [故障排除](docs/troubleshooting.md)
 - [驗證紀錄](docs/validation.md)：真實 Signet、兩套 AI CLI 登入與 Kong 容器的彩排狀態。本機測試通過不等於現場整合已完成。
-- [講師：Signet 與現場準備](docs/instructor.md)、[實作計畫](plan.md)（講師／維護者用）
+- [講師：Signet 與現場準備](docs/instructor.md)（講師用）
 
 想確認本機環境沒問題，可以跑自動測試（不需要現場帳密）：
 
