@@ -4,7 +4,7 @@
 
 ## 已執行
 
-- Go 1.26.7：六個 Lab 與參考 OAuth Client 編譯成功，`go vet ./...` 通過。
+- Go 1.26.9：六個 Lab 與參考 OAuth Client 編譯成功，`go vet ./...` 通過。
 - Python 3.12.13、uv lock：依賴安裝成功，Ruff 檢查與格式化通過。
 - `tests/test_labs.py` 以本機測試 issuer 啟動兩種語言的真實 MCP HTTP Server，測試：
   - 初始化、工具探索、工具呼叫與匿名 baseline。
