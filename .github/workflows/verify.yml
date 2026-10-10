@@ -1,0 +1,30 @@
+name: Verify workshop
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.7'
+          cache-dependency-path: go/go.sum
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: '0.10.10'
+          python-version: '3.12'
+          enable-cache: true
+          cache-dependency-glob: python/uv.lock
+      - name: Compile, lint and exercise both languages
+        run: ./scripts/check.sh
+      - name: Validate both Compose profiles (no live Signet needed)
+        run: |
+          cp .env.example .env
+          SIGNET_ISSUER=https://issuer.example python3 scripts/configure_gateway.py
+          docker compose --env-file .env -f labs/06/compose.yml --profile go config --quiet
+          docker compose --env-file .env -f labs/06/compose.yml --profile python config --quiet

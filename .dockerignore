@@ -1,0 +1,11 @@
+.git
+.env
+.env.*
+**/.tokens
+**/.venv
+**/__pycache__
+**/.pytest_cache
+**/.ruff_cache
+.build
+**/*.local.yml
+**/.runtime

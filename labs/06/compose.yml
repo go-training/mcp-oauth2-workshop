@@ -1,0 +1,49 @@
+# Start exactly one profile: go OR python. Backends have no host port.
+name: mcp-authorization-workshop
+services:
+  kong:
+    build:
+      context: https://github.com/go-signet/kong-mcp-oauth2.git#bafa464e89d6c46bb222dfce1877304f9e62473a
+    ports:
+      - "127.0.0.1:9000:8000"
+    environment:
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: /kong/kong.yml
+      KONG_PROXY_LISTEN: "0.0.0.0:8000"
+      KONG_ADMIN_LISTEN: "off"
+      KONG_PLUGINS: bundled,mcp-oauth2
+      KONG_PLUGINSERVER_NAMES: mcp-oauth2
+      KONG_PLUGINSERVER_MCP_OAUTH2_START_CMD: /usr/local/bin/mcp-oauth2
+      KONG_PLUGINSERVER_MCP_OAUTH2_QUERY_CMD: /usr/local/bin/mcp-oauth2 -dump
+      KONG_LOG_LEVEL: info
+    volumes:
+      - ./.runtime/kong.yml:/kong/kong.yml:ro
+    networks: [gateway, backend]
+  mcp-go:
+    profiles: [go]
+    build:
+      context: ../..
+      dockerfile: go/Dockerfile
+    env_file: ../../.env
+    environment:
+      LISTEN_ADDR: "0.0.0.0:8000"
+      MCP_RESOURCE: http://localhost:9000/mcp
+    networks:
+      backend:
+        aliases: [mcp]
+  mcp-python:
+    profiles: [python]
+    build:
+      context: ../..
+      dockerfile: python/Dockerfile
+    env_file: ../../.env
+    environment:
+      LISTEN_ADDR: "0.0.0.0:8000"
+      MCP_RESOURCE: http://localhost:9000/mcp
+    networks:
+      backend:
+        aliases: [mcp]
+networks:
+  gateway: {}
+  backend:
+    internal: true
