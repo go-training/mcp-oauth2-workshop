@@ -9,11 +9,11 @@
 
 ## 你需要選擇的三件事
 
-| 選擇 | 選項 | 備註 |
-| --- | --- | --- |
-| 語言 | Go **或** Python | 兩條路線功能完全相同，選一種就好 |
-| AI CLI | Claude Code **或** Codex CLI | 需要自己的帳號；範例不需要模型 API key |
-| 作業系統 | macOS / Linux / Windows（WSL2） | Windows 請在 WSL2 內操作 |
+| 選擇     | 選項                            | 備註                                   |
+| -------- | ------------------------------- | -------------------------------------- |
+| 語言     | Go **或** Python                | 兩條路線功能完全相同，選一種就好       |
+| AI CLI   | Claude Code **或** Codex CLI    | 需要自己的帳號；範例不需要模型 API key |
+| 作業系統 | macOS / Linux / Windows（WSL2） | Windows 請在 WSL2 內操作               |
 
 ## 上課前檢查清單
 
@@ -41,12 +41,12 @@ chmod 600 .env
 
 編輯 `.env`：
 
-| 變數 | 怎麼填 |
-| --- | --- |
-| `SIGNET_ISSUER` | **保持預設** `https://signet.wu-boy.com`（結尾不要加斜線） |
-| `OAUTH_CLIENT_ID` | 填入你自己的 Client App ID（Lab 01 建立、講師核准後取得）；等待核准期間可先用講師提供的備援 ID |
-| `INTROSPECTION_CLIENT_*` | 先留空，Lab 05 時講師會發給你 |
-| `GATEWAY_SHARED_SECRET` | 先留空，Lab 06 才使用 |
+| 變數                     | 怎麼填                                                                                         |
+| ------------------------ | ---------------------------------------------------------------------------------------------- |
+| `SIGNET_ISSUER`          | **保持預設** `https://signet.wu-boy.com`（結尾不要加斜線）                                     |
+| `OAUTH_CLIENT_ID`        | 填入你自己的 Client App ID（Lab 01 建立、講師核准後取得）；等待核准期間可先用講師提供的備援 ID |
+| `INTROSPECTION_CLIENT_*` | 先留空，Lab 05 時講師會發給你                                                                  |
+| `GATEWAY_SHARED_SECRET`  | 先留空，Lab 06 才使用                                                                          |
 
 > **每開一個新終端都要重新載入 `.env`**，否則 Lab 會讀不到設定：
 >
@@ -94,14 +94,14 @@ uv sync --project python --frozen
 
 每一關都可以獨立啟動，不依賴前一關對程式碼的修改。只有 Lab 04 會同時開 A/B 兩個 Server。
 
-| Lab | 你要做什麼 | 完成的標準 | 時間 |
-| --- | --- | --- | --- |
-| [01](labs/01/README.md) | 呼叫沒有授權的 MCP；登入 Signet、建立自己的 public Client App | 工具呼叫成功（因為沒有保護）；App 已送出核准 | 10 分 |
-| [02](labs/02/README.md) | 從 401 一路追到 Protected Resource Metadata，再到 Signet metadata | 能說出「Client 怎麼知道要去哪裡登入」 | 15 分 |
-| [03](labs/03/README.md) | PKCE 登入，並看 Server 如何驗 Token | 登入後呼叫成功；知道驗了簽章、issuer、audience、expiry、access type | 20 分 |
-| [04](labs/04/README.md) | 觀察 scope 與 resource 隔離 | 缺少寫入權限被擋；A 的 Token 打不進 B | 20 分 |
-| [05](labs/05/README.md) | 撤銷 Token 並觀察稽核 | 同一顆 Token 撤銷前成功、撤銷後失敗 | 10 分 |
-| [06](labs/06/README.md) | 把入口授權交給 Kong Gateway | 對照「Server 自己授權」與「Gateway 集中授權」的差異 | 10 分 |
+| Lab                     | 你要做什麼                                                        | 完成的標準                                                          | 時間  |
+| ----------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------- | ----- |
+| [01](labs/01/README.md) | 呼叫沒有授權的 MCP；登入 Signet、建立自己的 public Client App     | 工具呼叫成功（因為沒有保護）；App 已送出核准                        | 10 分 |
+| [02](labs/02/README.md) | 從 401 一路追到 Protected Resource Metadata，再到 Signet metadata | 能說出「Client 怎麼知道要去哪裡登入」                               | 15 分 |
+| [03](labs/03/README.md) | PKCE 登入，並看 Server 如何驗 Token                               | 登入後呼叫成功；知道驗了簽章、issuer、audience、expiry、access type | 20 分 |
+| [04](labs/04/README.md) | 觀察 scope 與 resource 隔離                                       | 缺少寫入權限被擋；A 的 Token 打不進 B                               | 20 分 |
+| [05](labs/05/README.md) | 撤銷 Token 並觀察稽核                                             | 同一顆 Token 撤銷前成功、撤銷後失敗                                 | 10 分 |
+| [06](labs/06/README.md) | 把入口授權交給 Kong Gateway                                       | 對照「Server 自己授權」與「Gateway 集中授權」的差異                 | 10 分 |
 
 最後 5 分鐘 Q&A。
 
@@ -111,16 +111,16 @@ uv sync --project python --frozen
 
 不熟這些詞也沒關係，Lab 會逐一示範。
 
-| 名詞 | 一句話 |
-| --- | --- |
-| Authorization Server (Signet) | 負責讓你登入、發 Token 的服務 |
-| Resource Server (MCP Server) | 持有資料／工具，收到 Token 後決定放不放行 |
-| Client (Claude Code / Codex) | 代表你去登入、帶 Token 呼叫 MCP 的程式 |
-| PKCE | 防止授權碼被攔截後冒用的機制，public Client 沒有 secret 時必備 |
-| scope | Token 被允許做的事，如 `notes:read`、`notes:write` |
-| audience / resource | Token 是發給哪一個 Server 用的，A 的 Token 不能拿去打 B |
-| JWKS | Server 用來驗證 Token 簽章的公鑰集合 |
-| introspection | Server 向 Signet 詢問「這顆 Token 還有效嗎」，Lab 05 用來實現即時撤銷 |
+| 名詞                          | 一句話                                                                |
+| ----------------------------- | --------------------------------------------------------------------- |
+| Authorization Server (Signet) | 負責讓你登入、發 Token 的服務                                         |
+| Resource Server (MCP Server)  | 持有資料／工具，收到 Token 後決定放不放行                             |
+| Client (Claude Code / Codex)  | 代表你去登入、帶 Token 呼叫 MCP 的程式                                |
+| PKCE                          | 防止授權碼被攔截後冒用的機制，public Client 沒有 secret 時必備        |
+| scope                         | Token 被允許做的事，如 `notes:read`、`notes:write`                    |
+| audience / resource           | Token 是發給哪一個 Server 用的，A 的 Token 不能拿去打 B               |
+| JWKS                          | Server 用來驗證 Token 簽章的公鑰集合                                  |
+| introspection                 | Server 向 Signet 詢問「這顆 Token 還有效嗎」，Lab 05 用來實現即時撤銷 |
 
 ## 架構
 
@@ -140,11 +140,11 @@ Client、Authorization Server、Resource Server 各自有清楚的責任。登�
 
 這是**完整可執行的完成版**。你的任務不是手刻 OAuth 或 JWT，而是修改設定、觀察請求，並驗證各種拒絕情境。每關的 README 會標出該閱讀哪些函式。
 
-| 內容 | Go | Python |
-| --- | --- | --- |
-| 六個可執行 Lab 入口 | [go/labs](go/labs) | [python/labs](python/labs) |
-| MCP 與授權實作（共用） | [server.go](go/internal/workshop/server.go) | [server.py](python/workshop/server.py) |
-| PKCE / MCP 呼叫 / 撤銷的參考 Client | [oauth/main.go](go/cmd/oauth/main.go) | [oauth.py](python/workshop/oauth.py) |
+| 內容                                | Go                                          | Python                                 |
+| ----------------------------------- | ------------------------------------------- | -------------------------------------- |
+| 六個可執行 Lab 入口                 | [go/labs](go/labs)                          | [python/labs](python/labs)             |
+| MCP 與授權實作（共用）              | [server.go](go/internal/workshop/server.go) | [server.py](python/workshop/server.py) |
+| PKCE / MCP 呼叫 / 撤銷的參考 Client | [oauth/main.go](go/cmd/oauth/main.go)       | [oauth.py](python/workshop/oauth.py)   |
 
 Server 提供三個工具：`whoami`、`list_notes`、`create_note`。筆記只存在記憶體、依使用者隔離，不涉及真實資料。
 
