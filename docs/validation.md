@@ -22,11 +22,21 @@
 
 執行 `./scripts/check.sh` 取得最新測試數與結果；GitHub Actions 重跑相同檢查。
 
+## 現場服務：公開連線檢查（2026-10-10）
+
+服務：`https://signet.wu-boy.com`。
+
+- AS metadata、OIDC discovery、JWKS：HTTPS 讀取成功；issuer 不含結尾斜線。
+- 宣告 `S256`、resource indicators、public Client `none` 認證方式；JWKS 提供 RSA / RS256 公鑰。
+- Go / Python 的參考 Client `metadata` 指令均成功讀取真實 Signet。
+- 兩種語言的 Lab 03 使用真實 issuer 啟動，PRM 指向該 issuer，未帶 Token 的請求回 401 與 challenge。
+- 沒有使用真實帳號登入或取得 access token，以上不代表授權、scope、audience、撤銷端到端已完成。
+
 ## 尚未宣稱完成
 
 | 項目 | 原因／完成條件 |
 | --- | --- |
-| 新的現場 Signet 端到端驗證 | 尚未提供部署 URL、Client 與測試身分；依 instructor checklist 彩排 |
+| 新的現場 Signet 端到端驗證 | 部署 URL 與公開 discovery 已確認；仍待 Client ID 與測試身分，依 instructor checklist 彩排 |
 | Claude Code / Codex 瀏覽器登入與 step-up | 目前核對文件與旗標，沒有使用真實課程身分完成互動登入 |
 | Kong 容器實際代理 Go / Python | 本機 Docker daemon 未啟動；Compose 設定可檢查，但不是容器 runtime 成功證明 |
 | 60 人集中登入容量 | 需在實際授權服務與會場網路條件下壓測 |

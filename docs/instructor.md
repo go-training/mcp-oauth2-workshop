@@ -1,6 +1,6 @@
 # 講師：Signet 與現場準備
 
-授權服務使用 **[go-signet/signet](https://github.com/go-signet/signet)**（先前討論的 `signt` 對應此 repo）。在課前建立一套全新、僅供工作坊的 Signet，不讓學員自行部署。學員在自己的筆電執行 HTTP MCP 與 Claude Code／Codex，瀏覽器 callback 回到自己的筆電，Signet 不需主動連進學員筆電。
+授權服務使用 **[go-signet/signet](https://github.com/go-signet/signet)**（先前討論的 `signt` 對應此 repo）。已提供工作坊服務 **https://signet.wu-boy.com**，學員不用自行部署。學員在自己的筆電執行 HTTP MCP 與 Claude Code／Codex，瀏覽器 callback 回到自己的筆電，Signet 不需主動連進學員筆電。
 
 ## 服務設定
 
@@ -9,7 +9,7 @@
 授權行為核對來源：Signet checkout [`a6747be2a6364e4c15bfa5e39524247f5ecc9fd9`](https://github.com/go-signet/signet/tree/a6747be2a6364e4c15bfa5e39524247f5ecc9fd9)。部署若使用其他版本，重新核對以下設定與 API。
 
 ```dotenv
-BASE_URL=https://YOUR-WORKSHOP-SIGNET-HOST
+BASE_URL=https://signet.wu-boy.com
 ENVIRONMENT=production
 JWT_SIGNING_ALGORITHM=RS256
 JWT_PRIVATE_KEY_PATH=/run/secrets/signet-rsa-private.pem
@@ -20,6 +20,16 @@ INTROSPECTION_REQUIRE_OWNERSHIP=true
 私鑰只放 Signet。MCP Server / Kong 只取得公開 JWKS，不能把 RSA 私鑰或 HS256 共用密鑰發給學員。
 
 本次採固定 callback URI。若確實需要動態 loopback port，可用 `LOOPBACK_REDIRECT_ANY_PORT_ENABLED=true` 並註冊不含 port 的 loopback URI；host / path 仍需相符，`localhost` 和 `127.0.0.1` 不可互換。固定版本 CLI 的 callback 以 [Client 指引](clients.md) 為準。
+
+## 現場服務公開檢查（2026-10-10）
+
+- HTTPS AS metadata / OIDC discovery 與 JWKS 均可讀取。
+- Metadata 的 issuer 是 `https://signet.wu-boy.com`，設定不要附加 `/`。
+- 宣告 PKCE `S256`、Authorization Code、public Client 的 `none` 認證方式與 resource indicators 支援。
+- JWKS 提供 RSA / RS256 signing key；尚未用實際 access token 核對其簽章、claims 與 audience。
+- 公開 `scopes_supported` 列出 `openid profile email`；這份全域清單不能證明 workshop Client 已允許 `notes:read notes:write`，請依下表確認管理員建立的 Client。
+
+這些讀取操作沒有建立帳號、註冊 Client 或更動現場服務。登入、撤銷與兩套 AI CLI 仍需使用課程身分彩排。
 
 ## 每組的 Client 與帳號
 
