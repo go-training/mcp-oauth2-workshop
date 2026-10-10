@@ -1,5 +1,7 @@
 # MCP OAuth 2.0 Workshop
 
+[![CI](https://github.com/go-training/mcp-oauth2-workshop/actions/workflows/verify.yml/badge.svg?branch=main)](https://github.com/go-training/mcp-oauth2-workshop/actions/workflows/verify.yml?query=branch%3Amain)
+
 讓 AI Agent、MCP Server 與 CLI 安全登入的實作工作坊。
 
 跟著六個小關卡，你會親手看到：一個沒有授權的 MCP Server 有多危險、OAuth 2.0 + PKCE 如何登入、Token 如何被驗證、撤銷，以及如何把授權集中到 Kong Gateway。教材以 **[MCP Authorization 2026-07-28](https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization/index)** 為基準。
