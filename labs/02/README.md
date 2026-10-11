@@ -74,15 +74,57 @@ Client 直接向兩台 Server 取得各自的 metadata；這段 discovery 不會
 ./scripts/lab.sh 02 "$LAB_LANGUAGE"
 ```
 
-另一個終端：
+另一個終端依序操作（同樣先載入 `.env`）：
+
+### 1. 取得 401 challenge
 
 ```bash
 curl -i http://localhost:8000/mcp
-curl -s http://localhost:8000/.well-known/oauth-protected-resource/mcp
+```
+
+預期收到 `401`；在回應標頭 `WWW-Authenticate` 中找到 `resource_metadata`，它就是下一步要讀取的 PRM URL。
+
+### 2. 查看 Resource Server 的 PRM
+
+預設設定下，challenge 指定的 URL 如下；若你的回應不同，請改用回應中的 URL：
+
+```bash
+curl -sS http://localhost:8000/.well-known/oauth-protected-resource/mcp
+```
+
+確認 JSON 的 `resource` 是 `http://localhost:8000/mcp`，並核對 `authorization_servers` 中的 Signet issuer 與 `.env` 的 `SIGNET_ISSUER` 一致。
+
+### 3. 查看 Signet 的 AS metadata
+
+執行以下指令，會依 `.env` 載入的 `SIGNET_ISSUER` 探索 Signet，並印出 AS metadata JSON。此指令不會自動讀取上一步的 PRM，因此要先完成 issuer 核對：
+
+```bash
 ./scripts/oauth.sh "$LAB_LANGUAGE" metadata
 ```
 
-第一個請求預期 `401` 與 `WWW-Authenticate`；依其中 `resource_metadata` 取得 PRM。PRM 的 `resource` 是 `http://localhost:8000/mcp`，`authorization_servers` 指向 Signet；接著查看 Signet 的 `issuer`、`authorization_endpoint`、`token_endpoint`、`jwks_uri`、`code_challenge_methods_supported`。
+若已安裝 `jq`，可只顯示本關要觀察的五個欄位：
+
+```bash
+./scripts/oauth.sh "$LAB_LANGUAGE" metadata | jq '{
+  issuer,
+  authorization_endpoint,
+  token_endpoint,
+  jwks_uri,
+  code_challenge_methods_supported
+}'
+```
+
+對照輸出的欄位，確認各自用途：
+
+| 欄位 | 用途與核對重點 |
+| --- | --- |
+| `issuer` | Signet 的識別 URL，應與 `SIGNET_ISSUER` 完全一致 |
+| `authorization_endpoint` | 後續登入授權時，Client 引導瀏覽器前往的端點 |
+| `token_endpoint` | 後續 Client 用授權碼與 PKCE verifier 換取 Token 的端點 |
+| `jwks_uri` | 公開驗證金鑰的位置，Resource Server 可用來驗證 JWT 簽章 |
+| `code_challenge_methods_supported` | 支援的 PKCE 方法，本課程需包含 `S256` |
+
+本步只讀取 metadata，不需要手動呼叫授權或 Token 端點。
 
 ### 逐項核對畫面
 
