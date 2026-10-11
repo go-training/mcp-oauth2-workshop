@@ -2,6 +2,26 @@
 
 教材基準：MCP Authorization **2026-07-28**。本頁區分已執行的本機驗證與尚待現場服務的彩排，不將 mock 當作 Signet。
 
+## 2026-10-11：Lab 06 操作流程複驗
+
+使用真實 Signet `https://signet.wu-boy.com`（介面版本 `v1.7.0-2-g7e68fb5`），重新完成 Go／Python 參考 Client 的 PKCE 登入，取得 Gateway 的 read、read+write Token 與 resource 8000 的 Token。Docker 29.2.1、Compose 5.1.4；重新建置映像後，分別啟動兩種 backend，切換前先停止上一組容器。
+
+| 驗證 | Go backend | Python backend |
+| --- | --- | --- |
+| `up --no-build --wait` 啟動成功 | 通過 | 通過 |
+| 匿名 `/mcp` 回 401，challenge 包含 PRM 指引 | 通過 | 通過 |
+| PRM 回 200，resource 為 9000、issuer 正確 | 通過 | 通過 |
+| read+write Token 查詢身分、建立與列出筆記 | 通過 | 通過 |
+| read Token 查詢成功、寫入回 403，筆記未新增 | 通過 | 通過 |
+| resource 8000 的 Token 呼叫 Gateway 回 401 | 通過 | 通過 |
+| 偽造身分、scope 與 Gateway headers 無法提升權限 | 通過 | 通過 |
+| 僅 Kong 發布主機 9000 port，backend 無主機映射、Kong Admin API 關閉 | 通過 | 通過 |
+| README 的參考 Client 呼叫：成功操作 exit 0、兩種拒絕操作非零結束 | 通過 | 通過 |
+
+未發現阻擋上述練習的功能問題。建置時出現缺少 Buildx plugin 警告，本機以舊建置器完成；README 已補環境檢查、入口預期回應、重跑 Token 檔名與切換 profile 的操作說明。
+
+本輪未重測 Claude Code／Codex 的模型工具呼叫，也未重測撤銷限制。Token 保存在 Git 忽略的檔案，未輸出 raw token；設定產生器依 README 更新本機 `.env` 與 Kong 設定。測試後已執行 `down`，`compose ps` 確認沒有本關容器。README 的 11 個 Bash 區塊語法與 8 個本機連結檢查通過。
+
 ## 2026-10-11：Lab 05 簡化為 public Client 撤銷（目前版本）
 
 Lab 05 已移除 introspection 與額外 confidential Client 憑證需求。必做流程改為 public Client 登入、撤銷與重複撤銷；Server 入口保留為選做，沿用 Lab 04 的離線 JWT／scope 檢查，不再以撤銷後立即回 401 驗收。

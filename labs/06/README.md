@@ -60,7 +60,11 @@ Gateway 也增加一個需要部署與維運的服務，入口故障會影響經
 
 ## 操作
 
+### 1. 課前確認環境並建置映像
+
 先停止 Lab 04 的 A/B Server（若曾啟動其他 Lab，也請先停止）。確認 `docker info` 與 `docker compose version` 成功；只有 Compose 指令存在、daemon 沒啟動仍不能操作。
+
+建置前也可用 `docker buildx version` 檢查 Buildx。如果出現 `Docker Compose requires buildx plugin to be installed`，請補齊 Docker 的 Buildx plugin。即使環境能以舊建置器繼續，也要確認下方 `build` 指令成功結束。課堂的 `--no-build` 不能代替課前建置。
 
 課前在實際操作電腦下載／編譯映像（Go 路線也要有 `python3` 執行設定產生器）：
 
@@ -69,6 +73,8 @@ Gateway 也增加一個需要部署與維運的服務，入口故障會影響經
 docker compose --env-file .env -f labs/06/compose.yml --profile "$LAB_LANGUAGE" build
 ```
 
+### 2. 產生設定並啟動
+
 課堂啟動使用 `--no-build`，避免重抓 GitHub build context。若提示 image 不存在，先完成上面的課前建置。Docker Compose v2 以上必須可用。從 repo 根目錄、已載入 `.env` 的終端執行：
 
 ```bash
@@ -76,13 +82,29 @@ python3 scripts/configure_gateway.py
 # 產生的 labs/06/.runtime/kong.yml 與 .env 都含本機憑證，已被 Git 忽略。
 # 選一個 profile，不要同時啟動 go 與 python。
 docker compose --env-file .env -f labs/06/compose.yml --profile "$LAB_LANGUAGE" up --no-build -d --wait --wait-timeout 120
-curl -i http://localhost:9000/mcp
-curl -s http://localhost:9000/.well-known/oauth-protected-resource/mcp
 ```
 
-`--wait` 會等待容器就緒；若逾時先看下方 logs，不要立刻把 Empty reply 誤判成 OAuth 失敗。
+設定產生器會把 Gateway 共享憑證寫入 `.env`，Compose 啟動時會讀取它，不需申請另一個 Signet App。若手動更新 `.env` 後要再執行設定產生器，先重新載入 `.env`，避免 shell 中的舊值覆蓋新設定。
 
-預期 401 與正確 PRM。Kong 的 resource 是 `http://localhost:9000/mcp`，你必須事先在自己的 Signet App 加入這個 allowed resource。
+`--wait` 等待容器達到 running／healthy 狀態；它不代表 OAuth 與 MCP 工具呼叫已通過。若啟動逾時先看下方 logs；啟動成功後，繼續做入口檢查。
+
+### 3. 確認入口與登入指引
+
+```bash
+curl -i http://localhost:9000/mcp
+curl -fsS http://localhost:9000/.well-known/oauth-protected-resource/mcp
+```
+
+| 檢查                   | 預期結果                                                                                                            |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| 不帶 Token 呼叫 `/mcp` | HTTP 401；`WWW-Authenticate` 包含 `resource_metadata`，指向 Gateway 的 PRM URL                                      |
+| 讀取 PRM               | HTTP 200；JSON 的 `resource` 是 `http://localhost:9000/mcp`，`authorization_servers` 包含 `.env` 的 `SIGNET_ISSUER` |
+
+第一行的 401 是正常結果，表示 Gateway 已保護入口。PRM 用來告訴 Client 要向哪個 Signet 登入。Kong 的 resource 是 `http://localhost:9000/mcp`，你必須事先在自己的 Signet App 加入這個 allowed resource；後面的錯 audience 練習也會用到 `http://localhost:8000/mcp`。
+
+### 4. 登入並呼叫工具
+
+下方及練習 1、2 的 `login` 都要求 Token 檔案尚未存在。重做時請換一組新檔名，並同步修改後續對應的 `call` 指令；不要為了重跑而刪除其他課程的 Token。
 
 ```bash
 ./scripts/oauth.sh "$LAB_LANGUAGE" login --resource http://localhost:9000/mcp --scopes 'notes:read notes:write' --token-file .tokens/lab06.json
@@ -90,7 +112,22 @@ curl -s http://localhost:9000/.well-known/oauth-protected-resource/mcp
 ./scripts/oauth.sh "$LAB_LANGUAGE" call --resource http://localhost:9000/mcp --token-file .tokens/lab06.json --tool create_note --text '經過 Kong'
 ```
 
+`whoami` 應回傳使用者身分，`create_note` 應成功建立筆記。先完成參考 Client 的操作，再接 AI CLI，較容易分辨是 Gateway 問題還是 CLI 設定問題。
+
 在 Claude Code／Codex 新增另一個名稱 `workshop-gateway`，URL 改成 `http://localhost:9000/mcp`，沿用 [public Client 登入方式](../../docs/clients.md)。必須重新為 Gateway resource 授權，不能沿用 8000 的 Token。
+
+### 若要切換 Go／Python 路線
+
+一般學員只需選一種。若要測試另一種，先用目前的 `LAB_LANGUAGE` 停止容器，再切換；兩種 backend 共用 `mcp` 網路別名，不能同時啟動。
+
+```bash
+docker compose --env-file .env -f labs/06/compose.yml --profile "$LAB_LANGUAGE" down
+export LAB_LANGUAGE=python  # 原本是 python 時改成 go
+# 另一條路線的映像也必須已完成課前 build。
+docker compose --env-file .env -f labs/06/compose.yml --profile "$LAB_LANGUAGE" up --no-build -d --wait --wait-timeout 120
+```
+
+切換會清空記憶體筆記。已取得、尚未到期且 resource 相同的 Token 可繼續呼叫；若要重做登入，改用新檔名。
 
 ## 對照與練習：誰負責擋下請求？
 
