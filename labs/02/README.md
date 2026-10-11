@@ -116,13 +116,13 @@ curl -sS http://localhost:8000/.well-known/oauth-protected-resource/mcp
 
 對照輸出的欄位，確認各自用途：
 
-| 欄位 | 用途與核對重點 |
-| --- | --- |
-| `issuer` | Signet 的識別 URL，應與 `SIGNET_ISSUER` 完全一致 |
-| `authorization_endpoint` | 後續登入授權時，Client 引導瀏覽器前往的端點 |
-| `token_endpoint` | 後續 Client 用授權碼與 PKCE verifier 換取 Token 的端點 |
-| `jwks_uri` | 公開驗證金鑰的位置，Resource Server 可用來驗證 JWT 簽章 |
-| `code_challenge_methods_supported` | 支援的 PKCE 方法，本課程需包含 `S256` |
+| 欄位                               | 用途與核對重點                                          |
+| ---------------------------------- | ------------------------------------------------------- |
+| `issuer`                           | Signet 的識別 URL，應與 `SIGNET_ISSUER` 完全一致        |
+| `authorization_endpoint`           | 後續登入授權時，Client 引導瀏覽器前往的端點             |
+| `token_endpoint`                   | 後續 Client 用授權碼與 PKCE verifier 換取 Token 的端點  |
+| `jwks_uri`                         | 公開驗證金鑰的位置，Resource Server 可用來驗證 JWT 簽章 |
+| `code_challenge_methods_supported` | 支援的 PKCE 方法，本課程需包含 `S256`                   |
 
 本步只讀取 metadata，不需要手動呼叫授權或 Token 端點。
 
@@ -138,11 +138,20 @@ curl -sS http://localhost:8000/.well-known/oauth-protected-resource/mcp
 
 ## 觀察與練習
 
-- Go：`NewHandler` 的 metadata 路由、`authorize` 的 Lab 02 分支、`Discover`。
-- Python：`Authorization.__call__` 的 metadata／Lab 02 分支、`discover`。
-- PRM 描述受保護資源；AS metadata 描述授權伺服器，兩者不是同一份文件。
-- PRM 公開可讀，不需要先登入。兩種 well-known 路徑都提供；Client 應優先使用 challenge 指定的位置。
-- 分辨誰回 401、誰顯示登入畫面、誰簽發 Token。
+對照剛才三個步驟的輸出，回答以下問題即可，不需要閱讀程式碼：
+
+1. **誰回傳 401？** 第一步呼叫的 MCP Server，也就是 Resource Server。
+2. **Client 怎麼知道要找 Signet？** 查看第二步 PRM 的 `authorization_servers`，其中列出 Signet 的 issuer。
+3. **怎麼知道去哪裡登入、去哪裡換 Token？** 查看第三步 Signet metadata 的 `authorization_endpoint` 與 `token_endpoint`。本關只要找到這兩個欄位，不需呼叫端點。
+
+### 進階：閱讀實作（選讀）
+
+想了解背後實作時，選擇你使用的語言閱讀：
+
+- [Go 實作](../../go/internal/workshop/server.go)：在 `NewHandler` 找 PRM 路由，在 `authorize` 找 Lab 02 固定回 401 的分支，再看 `Discover` 如何取得 Signet metadata。
+- [Python 實作](../../python/workshop/server.py)：在 `Authorization.__call__` 找 PRM 路由與 Lab 02 固定回 401 的分支，再看 `discover` 如何取得 Signet metadata。
+
+搭配上方時序圖，觀察 PRM 探索的 fallback 規則：Client 優先使用 challenge 的 `resource_metadata`；未提供時，依序嘗試 `/.well-known/oauth-protected-resource/mcp` 與 `/.well-known/oauth-protected-resource`。本課程 Server 同時提供這兩個公開端點，讀取時不需登入。
 
 ## 驗收
 
