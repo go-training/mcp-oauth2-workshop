@@ -1,10 +1,10 @@
 # 學員操作：登入 Signet，建立自己的 Client App
 
-這是 Lab 01 的一部分，Go / Python 共用同一份步驟。主流程使用**你自己建立、經講師核准的 public Client App**；講師共用 App 只作為備援。
+這是 Lab 01 的一部分，Go / Python 共用同一份步驟。主流程使用**你自己建立、設定完整且已啟用的 public Client App**；講師共用 App 只作為備援。
 
 服務：[https://signet.wu-boy.com](https://signet.wu-boy.com/)。
 
-> 目前尚未登入現場網站逐頁彩排；若現場版本或語系不同，請以欄位含義對照，不要為了找不到欄位而改用管理員帳號。
+> 2026-10-11 已核對 Signet `v1.6.0-2-gc4d3d86`：註冊頁顯示新 App 立即啟用，提供自訂 scopes 與允許的資源。此次使用既有管理員帳號的前台介面；一般學員身分仍需課前複核。若部署改為審核制，以畫面狀態為準。
 
 ## 先理解三件事
 
@@ -25,7 +25,7 @@
 
 ## 2. 填寫自己的 App
 
-一人一個 App。建議用座位編號命名，方便講師核准，例如 `hwdc-2026-seat-023`；兩種語言與兩套 CLI 可以共用同一個自己的 Client ID。
+一人一個 App。建議用座位編號命名，方便助教識別，例如 `hwdc-2026-seat-023`；兩種語言與兩套 CLI 可以共用同一個自己的 Client ID。
 
 | 欄位 | 填寫內容 | 原因 |
 | --- | --- | --- |
@@ -36,7 +36,7 @@
 | 裝置授權流程 / Device Flow | 取消勾選（新表單可能預設勾選） | 不在六關主線使用 |
 | Client Credentials Flow | 不勾選 | 這是使用者授權練習 |
 | Personal API Key | 不啟用 | 本課不用固定 API key 取代 OAuth |
-| 可編輯的權限範圍 | 移除預設的 `email`、`profile`，選 `openid` 即可 | 建立階段先選標準 scope；業務 scope 待講師加入 |
+| 權限範圍 | 保留 `email profile`，加入 `openid notes:read notes:write` | Codex add 首次可能申請標準 scopes；MCP 使用 notes scopes |
 
 ### Redirect URIs
 
@@ -52,32 +52,12 @@ http://localhost:8767/callback
 - 8766：Codex CLI，教材會固定 callback URL。
 - 8767：Claude Code，教材會固定 callback port。
 
-`localhost` 與 `127.0.0.1` 必須照填；不要加結尾 `/`。這些是**瀏覽器回到 CLI 的位置**，不要填 MCP 的 `8000/mcp`。
+`localhost` 與 `127.0.0.1` 必須照填；不要加結尾 `/`。這些是**瀏覽器回到 CLI 的位置**，不要填 MCP 的 `http://localhost:8000/mcp`。
 
-### 看不到 notes scope 或 Allowed Resources 是正常的
+### Scopes 與允許的資源
 
-目前一般使用者的表單只允許標準 scopes，不能自行新增 `notes:read` / `notes:write`；Allowed Resources 則由管理員設定。因此建立時不要嘗試貼入自訂 scope、找隱藏欄位或換成 confidential Client。
-
-按「註冊應用程式」提交。
-
-**檢查點 B：** App 出現在「我的應用程式」，狀態是 `pending` / 待審核。public App 沒有 client secret，這是正確結果。
-
-## 3. 操作 App 詳情，交給講師核准
-
-1. 打開自己 App 的詳情，找到並複製 **Client ID**。
-2. 進入編輯頁，把描述補上自己選用的 CLI，例如 `HWDC MCP workshop; Python; Codex`，儲存後確認內容。
-3. 透過講師指定的現場收集方式提供：座位編號、App 名稱、Client ID。只交識別資訊，不交密碼、Token 或 secret。
-4. 繼續 Lab 02 的 discovery 練習。等待期間不反覆送登入請求。
-
-講師會完成：
-
-| 檢查／設定 | 值 |
-| --- | --- |
-| App owner | 保留為建立它的學員 |
-| 類型與流程 | public、Authorization Code enabled |
-| Scopes | 保留 `openid`，加入 `notes:read notes:write` |
-| Allowed Resources | 以下三個精確 URL |
-| 審核狀態 | 完成設定後確認為 `active` |
+1. 點 `openid`；在「權限範圍」分別輸入 `notes:read`、`notes:write`，每筆按 Enter，確認變成標籤。
+2. 在「允許的資源 (RFC 8707)」逐筆輸入以下 URL 並按 Enter：
 
 ```text
 http://localhost:8000/mcp
@@ -85,11 +65,24 @@ http://localhost:8001/mcp
 http://localhost:9000/mcp
 ```
 
-**只改成 active 還不夠**：缺少自訂 scopes 會出現 `invalid_scope`；沒有 allowed resources 會出現 `invalid_target`。
+Allowed Resources 必須包含完整的 `http://localhost:PORT/mcp`，不要只填 `8000/mcp`，也不要加結尾斜線或把 `localhost` 換成 `127.0.0.1`。這三筆分別對應主 Server、Lab 04 的 Server B、Lab 06 的 Gateway，必須與 Client 送出的 resource 完全一致。
 
-重新整理 App 詳情，確認 active；到編輯頁查看管理員設定的權限。這些業務 scopes 可能顯示為不可編輯，學員仍可修改自己的名稱、描述與 callbacks。
+3. 確認三個 callbacks、三個 resources、五個 scopes 都已形成標籤，才按「註冊應用程式」。留在輸入框的文字不等於已加入。
+4. 新版註冊頁說明建立後立即啟用；提交後仍要以詳情實際顯示的狀態為準。若為 pending，請講師處理，先完成 Lab 02。
 
-**檢查點 C：** 講師確認該 App 的 scopes、resources、狀態均設定完成。
+**檢查點 B：** 取得 Client ID，public App 沒有 secret，狀態為 active／啟用。
+
+## 3. 複核儲存結果，再練習編輯
+
+1. 開啟 App 詳情，複製 **Client ID**；名稱不是 ID。
+2. 進入編輯頁，核對 public、Authorization Code 已勾、三個 callbacks 與三個 resources 都有保存。**本次新版仍重現：建立時取消 Device Flow，首次編輯卻再次勾選。請在編輯頁取消，按更新後再開編輯頁確認已關閉。** 這是介面狀態問題，不要直接推論 Device Flow endpoint 已可用。
+3. 已保存的 `notes:read notes:write` 會出現在「已儲存的自訂與管理 scopes」，一般 Owner 無法移除；修改描述時會保留。不要因為不在可編輯標籤列就重複新增。
+4. 把描述補上語言與 CLI，例如 `HWDC MCP workshop; Python; Codex`，按「更新應用程式」，再回詳情確認。
+5. 若缺 scopes 或 resources，回自己的編輯頁補齊；找不到欄位或狀態仍 pending 才請助教處理。不需要為此換成 confidential App。
+
+**只看到 active 還不夠**：缺少自訂 scopes 會出現 `invalid_scope`；resources 留空會出現 `invalid_target`。callbacks 是回 CLI 的位置，resources 是 Token 的接收對象，兩組 URL 不可交換。
+
+**檢查點 C：** 狀態、流程、scopes、callbacks、resources 五項全部正確。
 
 ## 4. 將自己的 Client ID 接回教材
 
@@ -97,7 +90,7 @@ http://localhost:9000/mcp
 
 ```dotenv
 SIGNET_ISSUER=https://signet.wu-boy.com
-OAUTH_CLIENT_ID=貼上自己的已核准ClientID
+OAUTH_CLIENT_ID=貼上自己的已啟用ClientID
 ```
 
 保留其他設定，然後在每個需要使用 Client 的終端重新載入：
@@ -130,14 +123,14 @@ export LAB_LANGUAGE=go  # 或 python
 
 ## 5. 回到介面觀察授權結果
 
-1. 回到「我的應用程式」，開啟自己的 App 與「授權」頁，觀察登入後的授權紀錄。
+1. 回到「我的應用程式」，開啟自己的 App 與「已授權的使用者」頁，觀察登入後的授權紀錄。
 2. 分辨「App 允許申請的 scopes」和「你這次實際同意的 scopes」。Lab 04 再申請 write 後重新比較。
 3. 在個人帳號的「已連線應用程式」查看自己的 Token／連線紀錄；Lab 05 仍以同一個 token file 驗證撤銷，避免 AI CLI 自動重新登入後誤判。
 4. 不操作其他學員的 App 或 Token，也不為了重練刪除整個 App。
 
 **檢查點 E：** 能說明帳號、Client App、授權紀錄和 Access Token 的差別。
 
-## 備援：自己的 App 尚未完成核准
+## 備援：自己的 App 尚未設定完成
 
 講師可以提供共用 **public** Client ID，讓你先完成後續 Lab。共用的是應用程式識別；**每位學員仍登入自己的帳號，各自取得 Token**。
 
@@ -148,7 +141,7 @@ export LAB_LANGUAGE=go  # 或 python
 ./scripts/oauth.sh "$LAB_LANGUAGE" call --token-file .tokens/fallback-read.json
 ```
 
-AI CLI 備援用新名稱 `workshop-fallback`，將 [Client 指南](clients.md) 的 public Client ID 換成共用 ID。自己的 App 核准後，以自己的 ID 新增 `workshop-personal` 並重新授權；舊 Token 不會因為你改了 `.env` 就變成由新 App 簽發。
+AI CLI 備援用新名稱 `workshop-fallback`，將 [Client 指南](clients.md) 的 public Client ID 換成共用 ID。自己的 App 設定完成後，以自己的 ID 新增 `workshop-personal` 並重新授權；舊 Token 不會因為你改了 `.env` 就變成由新 App 簽發。
 
 不要共用登入帳號、Token、confidential Client secret 或講師管理員帳密。Lab 05 introspection 憑證仍由講師另行提供，不能用自己的 public Client ID 取代。
 
@@ -157,14 +150,14 @@ AI CLI 備援用新名稱 `workshop-fallback`，將 [Client 指南](clients.md) 
 | 現象 | 處理 |
 | --- | --- |
 | pending 還不能登入 | 請講師完成設定與核准，先繼續 Lab 02 |
-| 只能選標準 scopes | 正常；notes scopes 由講師加在你原本的 App 上 |
-| 找不到 Allowed Resources | 正常；這是管理員欄位 |
+| notes scopes 不在標籤列 | 查看「已儲存的自訂與管理 scopes」；新 scope 在輸入框按 Enter 新增 |
+| 找不到 Allowed Resources | 新版在 callbacks 下方；確認頁面版本並請助教協助 |
 | 建立時要求 redirect URI | 勾選 Authorization Code，新增三個 callback 標籤 |
 | public App 沒有 secret | 正常，PKCE 不需要共用 secret |
-| active 後仍 invalid_target | 請講師檢查 resource 白名單，不要改成跳過 audience 驗證 |
+| active 後仍 invalid_target | 回編輯頁核對三個完整 resource URL，不要跳過 audience 驗證 |
 | 同意畫面是講師的 App 名稱 | CLI 還在用備援 ID；新增自己的 entry 再登入 |
 | 修改 ID 後 whoami 一樣 | 正常，subject 代表登入使用者，不是 Client ID；以同意畫面的 App 名稱及 App 授權紀錄確認 |
 
 ## 現場彩排
 
-現場一般使用者畫面與完整核准流程仍須依 [彩排清單](instructor.md) 驗證。學員不需要存取 Signet 原始碼。
+現場一般使用者畫面與完整自助建立流程仍須依 [彩排清單](instructor.md) 驗證。學員不需要存取 Signet 原始碼。

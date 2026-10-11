@@ -15,6 +15,8 @@ set +a
 
 ## 操作：scope
 
+先在終端 A 按 `Ctrl-C` 停止 Lab 03，再啟動本關。以下 Server A 用終端 A，Client 用終端 B，稍後 Server B 用終端 C；三個終端都先載入設定。
+
 ```bash
 ./scripts/lab.sh 04 "$LAB_LANGUAGE"
 ```
@@ -49,7 +51,7 @@ MCP_RESOURCE=http://localhost:8001/mcp LISTEN_ADDR=127.0.0.1:8001 ./scripts/lab.
 ./scripts/oauth.sh "$LAB_LANGUAGE" call --resource http://localhost:8001/mcp --token-file .tokens/lab04-b.json
 ```
 
-講師必須事先允許 A/B 兩個 resource，否則登入階段的 `invalid_target` 不是 Server 驗證 audience 的結果。
+自己的 App 必須事先允許 A/B 兩個 resource，否則登入階段的 `invalid_target` 不是 Server 驗證 audience 的結果。
 
 ## 觀察與練習
 
@@ -62,3 +64,5 @@ AI CLI 對 step-up 的呈現可能不同：參照 [Client 指引](../../docs/cli
 ## 驗收
 
 讀取成功、未授權寫入回 403、補 scope 後寫入成功；A Token 到 B 回 401、B 自己的 Token 成功；筆記依 subject 隔離。
+
+完成後，在終端 A 與 C 分別按 `Ctrl-C`，停止 8000 與 8001；否則 Lab 05 可能遇到 port 被占用。

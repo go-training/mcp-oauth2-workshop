@@ -6,15 +6,18 @@
 | metadata discovery failed | 新終端是否載入 .env；issuer 是否為真正 HTTPS 網址；DNS / TLS 是否可達 |
 | issuer mismatch | BASE_URL、metadata issuer、JWT iss 必須逐字一致 |
 | invalid_target | Signet public Client 的 allowed_resources 是否包含精確 URL；localhost 與 127.0.0.1 不相同 |
-| invalid_scope | 自己的 App 需要講師加入 notes:read / notes:write；只完成建立或核准狀態仍不夠 |
+| invalid_scope | 在自己的 App 編輯頁加入 notes:read / notes:write；Codex 首次 add 另需 openid profile email |
 | App 是 pending | 將 Client ID 交給講師設定與核准，先繼續 Lab 02 或使用共用備援 App |
-| UI 不能新增 notes scope / resource | 學員自助介面的限制；由講師在原 App 上設定，詳見 [Client App 教學](signet-client-app.md) |
+| UI 不能新增 notes scope / resource | 新版可自行新增；輸入後按 Enter，若沒有欄位請核對部署版本，詳見 [Client App 教學](signet-client-app.md) |
 | redirect mismatch | 核對 Client 實際產生的 host、port、path 與預先註冊值；不要使用萬用 callback 放寬 |
 | Lab 02 一直 401 | 這是設計，下一關才開始接受 Token |
 | Lab 03 401 | Token 必須是 RS256 access token；檢查 issuer、audience、expiry、kid，勿使用 refresh / ID token |
 | 寫入回 403 | 確認 Token 同時具有 notes:read 與 notes:write，重新授權後使用新檔案 |
 | Lab 05 503 | introspection 是否可達、confidential credentials 是否有效；不要停用檢查來放行 |
 | 撤銷 API 200 但還能用 | 是否其實在跑 Lab 03/04/06？是否 AI CLI 自動取得新 Token？用同一 token file 呼叫 Lab 05 |
+| Kong 啟動後 Empty reply | 使用 Compose `up -d --wait --wait-timeout 120`；逾時看容器 logs |
+| CLI OAuth session expired | 先登入 Claude／Codex 本身的模型帳號；MCP Connected 不代表模型帳號有效 |
+| Go tools fetch failed、audience schema | 更新教材到修正版本並重啟 Server；舊版 whoami 的 boolean schema 不相容 Claude |
 | Kong 502 | backend profile 是否啟動、network alias mcp 是否只有一個服務使用 |
 | Kong config 無法讀取 | 重新執行 configure_gateway.py；.runtime 目錄 0700，config 0644，唯讀 bind mount |
 | Python 421 Invalid Host | 使用 repo 的 preserve_host=true route；不要停用 DNS rebinding protection |

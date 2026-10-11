@@ -10,57 +10,45 @@ MCP Server / Kong 只取得公開 JWKS；簽章私鑰不得發給學員。
 
 本次採固定 callback URI，請逐一註冊 [Client 指引](clients.md) 中的完整 URL；`localhost` 和 `127.0.0.1` 不可互換。
 
-## 現場服務公開檢查（2026-10-10）
+## 現場服務與新版學員流程（2026-10-11）
 
-- HTTPS AS metadata / OIDC discovery 與 JWKS 均可讀取。
-- Metadata 的 issuer 是 `https://signet.wu-boy.com`，設定不要附加 `/`。
-- 宣告 PKCE `S256`、Authorization Code、public Client 的 `none` 認證方式與 resource indicators 支援。
-- JWKS 提供 RSA / RS256 signing key；尚未用實際 access token 核對其簽章、claims 與 audience。
-- 公開 `scopes_supported` 列出 `openid profile email`；這份全域清單不能證明 workshop Client 已允許 `notes:read notes:write`，請依下表確認管理員建立的 Client。
+新版 Signet `v1.6.0-2-gc4d3d86` 的前台註冊頁已提供自訂 scopes、Allowed Resources，並明示新 App 立即啟用。不要再安排所有學員等待管理員手動補欄位與核准。既有管理員身分已核對前台欄位；一般非管理員身分仍須課前複核。
 
-這些讀取操作沒有建立帳號、註冊 Client 或更動現場服務。登入、撤銷與兩套 AI CLI 仍需使用課程身分彩排。
+Metadata 的 issuer 是 `https://signet.wu-boy.com`，宣告 S256 與 resource indicators；真實 Token 的結果以 [驗證紀錄](validation.md) 最新一節為準。全域 `scopes_supported` 不能證明特定 App 已允許 notes scopes。
 
 ## 每組的 Client 與帳號
 
-### 主流程：學員建立自己的 public App，講師完成核准
+### 主流程：學員自行建立、儲存後複核
 
-課前寄出 [學員逐步教學](signet-client-app.md)。入場先登入 Signet，Lab 01 由學員自行填表、取得 Client ID、查看 pending 狀態並編輯描述；讓每位學員實際操作 App 介面。Lab 02 期間由講師或已有管理員權限的工作人員處理設定，Lab 03 使用自己的 App 登入。
+課前寄出 [學員逐步教學](signet-client-app.md)。Lab 01 由學員完成以下欄位，建立後回詳情／編輯頁確認實際保存結果，再練習修改描述。Lab 02 不需要任何 Client ID，可用來排除個別設定問題。
 
-目前學員 `/apps/new` 有三個限制：建立後 pending、只能自行選標準 scopes、沒有 Allowed Resources 欄位。這些限制不需要為工作坊而解除；核准是課程的一部分。
-
-1. 收集座位編號、App 名稱、Client ID；不用收 Token、密碼或 secret。
-2. 在 [管理員 Client 清單](https://signet.wu-boy.com/admin/clients) 找到該 App，核對 owner 與學員對應，**保留 owner 為學員**。
-3. 開啟編輯設定，複核以下欄位、加入 scopes / resources，將 Status 選為 active 後一起儲存。
-4. 回到詳情頁確認設定與 active 狀態，再通知學員重新整理；不要只按核准而漏掉 scope / resource。
-5. 學員更新自己的 `.env`，以 App 同意畫面的名稱與登入後的 App 授權紀錄確認使用的是自己的 App。
-
-| 設定 | 核准時應有的值 |
+| 設定 | 應有的值 |
 | --- | --- |
 | Client type | public |
 | Authorization Code Flow | enabled |
-| Device Flow / Client Credentials / Personal API Key | 本課主線不啟用 |
-| Scopes | 保留初始 `openid`，加入 `notes:read notes:write` |
+| Device Flow / Client Credentials / Personal API Key | 不啟用，建立後再複核 |
+| Scopes | `openid profile email notes:read notes:write` |
 | Redirect URIs | `http://127.0.0.1:8765/callback`、`http://127.0.0.1:8766/callback`、`http://localhost:8767/callback` |
 | Allowed resources | `http://localhost:8000/mcp`、`http://localhost:8001/mcp`、`http://localhost:9000/mcp` |
 | Owner | 建立該 App 的學員 |
-| Status | 完成設定後 active |
-| 略過同意授權 / Skip Consent | 不勾選，讓學員能看到自己 App 的同意畫面 |
-| Client secret | public Client 沒有，也不需要發放 |
+| Status | active／啟用；若仍 pending，請管理員確認部署政策 |
+| Skip Consent | 不勾選，保留授權畫面 |
+| Client secret | public Client 不需要 |
 
-若部署版本有批次核准功能，它只改 pending → active，**不會自動補上自訂 scopes / allowed resources**。每個 App 的設定仍須完成。不要對公開服務的全部 pending App 無條件核准，只處理這場工作坊確認過的清單。
+標準 scopes 保留給 Codex add 的首次自動 OAuth；真正 MCP 登入仍明確申請 notes scopes。新增 scopes、callbacks、resources 都需按 Enter 成為標籤。已保存的自訂 scopes 在編輯頁有獨立鎖定區塊，修改描述不會移除。
 
-60 人現場手動設定可能超過 Lab 02 的時間。優先讓學員課前先建立 App，講師預先處理；當天才建立者邊上課邊處理，到 Lab 03 還沒完成就使用下面的備援。這份教材沒有自動批量修改正式服務的程式。
+若現場政策重新啟用審核，只處理這場課確認過的 App，核對 owner、scopes、resources 後啟用；不可對全部 pending App 無條件核准。若到 Lab 03 還沒完成，使用以下備援。
 
 ### 備援：講師共用 public Client App
 
-講師課前建立 `hwdc-2026-shared-fallback`，設定與上表相同 callbacks、resources，至少允許 `notes:read notes:write` 並確認 active。發放的是 **public Client ID**；每位學員仍用自己的登入帳號、個別同意授權，取得各自 Token。
+講師課前建立 `hwdc-2026-shared-fallback`，設定與上表相同 callbacks、resources，允許 `openid profile email notes:read notes:write` 並確認 active。發放的是 **public Client ID**；每位學員仍用自己的登入帳號、個別同意授權，取得各自 Token。
 
 - 不共用帳號、Token、confidential Client secret 或管理員憑證。
-- 學員自己的 App 仍保留並完成核准；備援只是避免課程中斷。
+- 學員自己的 App 仍保留並完成設定；備援只是避免課程中斷。
 - 切換 Client ID 需要重新登入；AI CLI 用 `workshop-fallback` 與 `workshop-personal` 分開設定，避免沿用舊授權快取。
 - 課後由講師停用共用 App，學員不要嘗試管理這個不屬於自己的 App。
 
-這仍是 CLI 使用已註冊 Client ID 的 pre-registration 路線，與自動 DCR / CIMD 不同。本課不使用 DCR / CIMD，學員依教學取得並填入已核准的 Client ID。
+這仍是 CLI 使用已註冊 Client ID 的 pre-registration 路線，與自動 DCR / CIMD 不同。本課不使用 DCR / CIMD，學員依教學取得並填入已啟用的 Client ID。
 
 Resource 逐字匹配。相同本機 URL 出現在不同學員電腦是同一個 OAuth resource 識別，**不表示不同筆電已由 audience 隔離**；本課跨資源隔離示範是 8000 / 8001 / 9000 三個識別。學員身分與資料隔離另由 subject 處理；勿交換 Token。
 
@@ -92,8 +80,8 @@ Resource 逐字匹配。相同本機 URL 出現在不同學員電腦是同一個
 - [ ] Metadata 的 issuer 與 JWT `iss` 完全一致，JWKS 有對應 `kid`，access token 使用 RS256。
 - [ ] `S256` 被 metadata 宣告；public clients、callbacks、自訂 scopes、三個 resources 都完成設定。
 - [ ] Go / Python PKCE 參考 Client 分別登入成功；檢查 Token audience 與所請求 resource 一致。
-- [ ] 使用一般學員帳號完成 `/apps/new` → pending → 講師補 scopes/resources 並核准 → active → 以自己的 ID 登入；不能只用管理員帳號測 UI。
-- [ ] 確認學員可編輯描述；管理員加入的 notes scopes 被保留且不可由學員任意更改。
+- [ ] 使用一般學員帳號完成 `/apps/new` → 自填 scopes/resources → active → 編輯複核 → 以自己的 ID 登入；不能只用管理員帳號測 UI。
+- [ ] 確認學員可編輯描述；已儲存的 notes scopes 被保留，Owner 無法移除但可新增合法自訂 scopes。
 - [ ] 共用備援 App 已跑通，切回學員自己的 ID 時確實重新登入。
 - [ ] Claude Code / Codex 各自登入、呼叫工具、重新授權成功；不要只測其中一套。
 - [ ] A Token 到 B 被拒；只有 read 的 Token 不能 write。
@@ -106,6 +94,6 @@ Resource 逐字匹配。相同本機 URL 出現在不同學員電腦是同一個
 
 ## 現場節奏
 
-13:00–13:25 進場執行 health check、登入 Signet，尚未建立 App 的學員可先依教學填表；13:25 後協助備取學員；13:30 開始 90 分鐘主課。建議 3–4 位助教處理各區環境問題。Lab 01 約 4 分鐘 MCP baseline、6 分鐘 Client App 介面，Lab 02 同步處理核准。每關結束回報成功／卡住；卡住的學員直接啟動下一關完成版，保留主線時間。
+13:00–13:25 進場執行 health check、登入 Signet，尚未建立 App 的學員可先依教學填表；13:25 後協助備取學員；13:30 開始 90 分鐘主課。建議 3–4 位助教處理各區環境問題。Lab 01 約 4 分鐘 MCP baseline、6 分鐘 Client App 介面，Lab 02 同步協助設定問題。每關結束回報成功／卡住；卡住的學員直接啟動下一關完成版，保留主線時間。
 
 課後停用工作坊 Client／帳號、撤銷尚有效的授權、清理臨時資料。保留教材與匿名化問題紀錄供下一場改進。Device Flow 已移出六關主線，活動頁的現場承諾需由講師同步調整。

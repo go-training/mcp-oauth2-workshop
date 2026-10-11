@@ -15,7 +15,17 @@ set +a
 
 ## 操作
 
+先停止 Lab 04 的 A/B Server。終端 A 啟動本關，終端 B 依序執行登入、呼叫、撤銷、再次呼叫。
+
 講師為每組提供獨立 confidential Client 的 introspection 憑證；放入 `.env` 的 `INTROSPECTION_CLIENT_ID` / `INTROSPECTION_CLIENT_SECRET` 並重新載入。這不是 Claude Code／Codex 的 public Client，也不是 Signet 管理員密碼。
+
+載入後先確認兩項都有值，不要用 `echo` 印出 secret：
+
+```bash
+test -n "$INTROSPECTION_CLIENT_ID" && test -n "$INTROSPECTION_CLIENT_SECRET" && echo 'introspection 設定已填入'
+```
+
+沒有顯示確認文字就先補設定；public Client ID 不能代替這一組憑證。
 
 ```bash
 ./scripts/lab.sh 05 "$LAB_LANGUAGE"
@@ -30,7 +40,7 @@ set +a
 ./scripts/oauth.sh "$LAB_LANGUAGE" call --token-file .tokens/lab05.json
 ```
 
-最後一次必須回 401，而且使用的是**同一個檔案、同一顆 Token**。不要用會自動重新登入／更新 Token 的 AI CLI 作為唯一撤銷證據。
+第一次 call 應回 200；revoke 應顯示 `Revocation accepted`。最後一次必須回 401，而且使用的是**同一個檔案、同一顆 Token**。不要用會自動重新登入／更新 Token 的 AI CLI 作為唯一撤銷證據。
 
 ## 觀察與練習
 

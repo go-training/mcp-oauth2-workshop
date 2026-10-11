@@ -15,7 +15,7 @@ set +a
 
 ## 操作
 
-先停止 Lab 01；載入自己從 `.env.example` 建立的 `.env`，再啟動。此關不需要 Client ID 已核准，講師可同時處理 Lab 01 提交的 App：
+先停止 Lab 01；載入自己從 `.env.example` 建立的 `.env`，再啟動。此關不需要 Client ID，也不需登入，可同步補齊 Lab 01 的 App 設定：
 
 ```bash
 ./scripts/lab.sh 02 "$LAB_LANGUAGE"
@@ -30,6 +30,16 @@ curl -s http://localhost:8000/.well-known/oauth-protected-resource/mcp
 ```
 
 第一個請求預期 `401` 與 `WWW-Authenticate`；依其中 `resource_metadata` 取得 PRM。PRM 的 `resource` 是 `http://localhost:8000/mcp`，`authorization_servers` 指向 Signet；接著查看 Signet 的 `issuer`、`authorization_endpoint`、`token_endpoint`、`jwks_uri`、`code_challenge_methods_supported`。
+
+### 逐項核對畫面
+
+| 步驟 | 你應看到什麼 | 看不到時先查 |
+| --- | --- | --- |
+| `curl -i /mcp` | `401`、`WWW-Authenticate: Bearer`，含 resource_metadata URL | 是否仍在跑 Lab 01 |
+| 讀 PRM | resource 是 `http://localhost:8000/mcp`，authorization_servers 是 Signet | 是否錯用另一個 port 或 MCP_RESOURCE |
+| `metadata` | issuer、authorize/token/JWKS endpoints、S256 | 新終端是否載入 .env、HTTPS 是否可達 |
+
+此關沒有瀏覽器登入，也不會產生 Token 檔。看懂以上三份資訊即可停止 Server，進入 Lab 03。
 
 ## 觀察與練習
 

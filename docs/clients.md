@@ -1,6 +1,6 @@
 # Claude Code / Codex CLI 操作
 
-選一套即可，Go / Python 的 MCP URL 與操作方式完全相同。下列旗標於 **Codex CLI 0.162.1、Claude Code 2.1.263** 的本機 help 核對；真實 Signet 瀏覽器登入仍需講師彩排。舊版本請先升級或以參考 Client 完成練習。
+選一套即可，Go / Python 的 MCP URL 與操作方式完全相同。下列旗標於 **Codex CLI 0.162.1、Claude Code 2.1.263** 的本機 help 核對；真實彩排結果見 [驗證紀錄](validation.md)。舊版本請先升級或以參考 Client 完成練習。
 
 本文件不會自動修改你的 CLI 設定。操作前確認 server 名稱未被其他專案使用；課後只移除這次新增的 workshop entries。
 
@@ -16,6 +16,8 @@ claude mcp get workshop-open
 claude
 ```
 
+先確認 CLI 本身能正常對話；若顯示模型帳號 OAuth session expired，先完成 CLI 自己的登入，這與 Signet MCP 登入是兩件事。
+
 在互動介面輸入 `/mcp` 檢查連線，然後要求「呼叫 workshop-open 的 whoami，再列出筆記」。確認工具紀錄，而不是只看模型文字。
 
 ### Codex CLI
@@ -26,7 +28,7 @@ codex mcp list
 codex
 ```
 
-使用 `/mcp` 檢查，再要求呼叫 `whoami`。使用 HTTP URL，不要把範例啟動指令設定成 STDIO MCP。
+使用 `/mcp` 檢查，再要求呼叫 `whoami`。出現工具執行批准提示時，確認是自己的 workshop Server 再批准本次操作；OAuth 同意與 CLI 工具批准是不同步驟。使用 HTTP URL，不要把範例啟動指令設定成 STDIO MCP。
 
 ## Lab 02：只觀察 discovery
 
@@ -34,9 +36,9 @@ codex
 
 ## Lab 03 起：預先註冊的 public Client
 
-先完成 [建立自己的 Client App](signet-client-app.md)，待講師補齊 scope、resource 並核准後啟動 Lab 03，從 repo 根目錄載入 `.env`。`OAUTH_CLIENT_ID` 優先使用自己的 public App ID；等待核准時才用講師共用的備援 ID。public Client 沒有 secret，不要填入 introspection Client 的 secret。
+先完成 [建立自己的 Client App](signet-client-app.md)，自行補齊 scope、resource 並確認 active 後啟動 Lab 03，從 repo 根目錄載入 `.env`。`OAUTH_CLIENT_ID` 優先使用自己的 public App ID；設定尚未完成時才用講師共用的備援 ID。public Client 沒有 secret，不要填入 introspection Client 的 secret。
 
-學員建立 App 時填入下列**精確** callback，講師核准時複核；共用備援 App 也使用相同設定：
+學員建立 App 時填入下列**精確** callback，建立後重新開啟編輯頁複核；共用備援 App 也使用相同設定：
 
 | 用途 | Redirect URI |
 | --- | --- |
@@ -63,6 +65,8 @@ codex -c 'mcp_oauth_callback_port=8766' -c 'mcp_oauth_callback_url="http://127.0
 codex -c 'mcp_oauth_callback_port=8766' -c 'mcp_oauth_callback_url="http://127.0.0.1:8766/callback"' mcp login workshop-auth --scopes notes:read
 codex
 ```
+
+**第一行可能直接開啟瀏覽器，先完成它再執行第二行。** Codex 0.162.1 的 `mcp add` 首次可能申請 `openid profile email`，因此 App 應保留這三個標準 scopes。完成這次登入不代表已有 notes 權限；第二行 `mcp login --scopes notes:read` 才是 Lab 03 驗收登入。若第一次出現 `invalid_scope`，先在 App 補齊標準 scopes，使用 `mcp get workshop-auth` 確認 entry 是否已保存，避免反覆新增。
 
 Lab 04 需要讀寫時，沿用 callback overrides 重新授權：
 
@@ -103,3 +107,17 @@ codex mcp remove workshop-auth
 - `codex mcp add --help` / `codex mcp login --help` / `claude mcp add --help`：本機指定版本的實際旗標。
 
 課前把兩套 CLI 與 Signet 的彩排結果記入 [驗證紀錄](validation.md)。
+
+## 非互動彩排與工具批准
+
+優先使用互動 CLI 完成課程。`codex exec` 的 approval policy 為 never 時，可能在 OAuth 成功後仍回 `MCP tool call requires approval`，這不是 Signet 拒絕 Token。自動彩排可只對測試 entry 的兩個讀取工具給單次執行 override；不要修改全域批准政策或套用到未知 Server：
+
+```bash
+codex exec --ephemeral --sandbox read-only \
+  -c 'mcp_servers.workshop-auth.enabled_tools=["whoami","list_notes"]' \
+  -c 'mcp_servers.workshop-auth.tools.whoami.approval_mode="approve"' \
+  -c 'mcp_servers.workshop-auth.tools.list_notes.approval_mode="approve"' \
+  '只呼叫 workshop-auth 的 whoami 與 list_notes，回報工具結果，不讀檔或執行其他工具。'
+```
+
+此設定只適用於你已檢查過、僅含練習資料的本機 Server。設定欄位依據 [官方 MCP 文件](https://learn.chatgpt.com/docs/extend/mcp?surface=cli)。

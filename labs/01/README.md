@@ -38,10 +38,20 @@ curl http://localhost:8000/healthz
 
 1. 登入 `https://signet.wu-boy.com`，開啟「開發 → 我的應用程式 → 註冊新應用程式」。
 2. 建立 `hwdc-2026-seat-你的編號`，選 **public**、啟用 **Authorization Code Flow**，取消預設 Device Flow，填入教學列出的三個 callbacks。
-3. 建立階段先選 `openid`，取得自己的 Client ID，查看 pending 狀態，再練習修改 App 描述。
-4. 將座位編號、App 名稱與 Client ID 交給講師核准，繼續 Lab 02；此時不要期待 pending App 可以登入。
+3. 保留 `email profile`，加入 `openid notes:read notes:write`。在「允許的資源 / Allowed Resources」逐筆複製以下完整 URL，每筆按 Enter，確認形成三個標籤：
 
-`notes:read` / `notes:write` 和 Allowed Resources 由講師在你的 App 上設定。核准後把自己的 ID 放入 `.env`，Lab 03 使用；若尚未完成核准，先用講師共用 public App 備援。App 的 public 是 OAuth 類型，並不代表所有人都能管理你的 App。
+   ```text
+   http://localhost:8000/mcp
+   http://localhost:8001/mcp
+   http://localhost:9000/mcp
+   ```
+
+   必須包含 `http://`、`localhost`、port 與 `/mcp`；不要加結尾斜線，也不要換成 callback URL 或 `127.0.0.1`。
+
+4. 提交後確認 active，取得 Client ID，進入編輯頁複核流程與所有 URL，再練習修改 App 描述。
+5. 將 ID 存入 `.env` 的 `OAUTH_CLIENT_ID`，在 Client 終端重新載入。
+
+新版立即啟用，不需排隊等講師核准。若現場畫面仍是 pending，請助教確認部署政策，可先做 Lab 02 或使用備援 public Client ID。App 的 public 是 OAuth 類型，不代表所有人都能管理你的 App。
 
 ## 觀察與練習
 
@@ -51,4 +61,4 @@ curl http://localhost:8000/healthz
 
 ## 驗收
 
-所選語言的 Server 正常回應，能呼叫三個工具；AI CLI 確實發出工具請求。另已用自己的帳號建立 public App，取得 Client ID 並提交核准。此關沒有授權，只綁定本機，不對外開放。
+所選語言的 Server 正常回應，能呼叫三個工具；AI CLI 確實發出工具請求。另已用自己的帳號建立 public App，取得 Client ID 並確認設定完整、狀態 active。此關沒有授權，只綁定本機，不對外開放。

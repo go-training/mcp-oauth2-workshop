@@ -29,7 +29,7 @@
 - [ ] 完成下方「快速開始」，並成功看到第一次呼叫（見 [預期結果](#預期結果)）
 - [ ] 先讀過 [建立自己的 Client App](docs/signet-client-app.md)，Lab 01 會用到
 
-Lab 06 使用 Docker Compose v2，映像由講師預先準備，你不需要事先安裝或下載。
+Lab 06 使用 Docker Compose v2 以上與 Python 3 設定產生器，映像由講師預先準備，學員若要自行操作，仍需安裝並啟動 Docker Engine／Docker Desktop（含 Compose）；不操作的學員可跟看講師展示。映像請課前下載，現場不應依賴網路建置。
 
 ## 快速開始
 
@@ -47,7 +47,7 @@ chmod 600 .env
 | 變數                     | 怎麼填                                                                                         |
 | ------------------------ | ---------------------------------------------------------------------------------------------- |
 | `SIGNET_ISSUER`          | **保持預設** `https://signet.wu-boy.com`（結尾不要加斜線）                                     |
-| `OAUTH_CLIENT_ID`        | 填入你自己的 Client App ID（Lab 01 建立、講師核准後取得）；等待核准期間可先用講師提供的備援 ID |
+| `OAUTH_CLIENT_ID`        | 填入你自己的 Client App ID（Lab 01 建立並確認 active 後取得）；設定尚未完成時可先用講師提供的備援 ID |
 | `INTROSPECTION_CLIENT_*` | 先留空，Lab 05 時講師會發給你                                                                  |
 | `GATEWAY_SHARED_SECRET`  | 先留空，Lab 06 才使用                                                                          |
 
@@ -99,7 +99,7 @@ uv sync --project python --frozen
 
 | Lab                     | 你要做什麼                                                        | 完成的標準                                                          | 時間  |
 | ----------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------- | ----- |
-| [01](labs/01/README.md) | 呼叫沒有授權的 MCP；登入 Signet、建立自己的 public Client App     | 工具呼叫成功（因為沒有保護）；App 已送出核准                        | 10 分 |
+| [01](labs/01/README.md) | 呼叫沒有授權的 MCP；登入 Signet、建立自己的 public Client App     | 工具呼叫成功（因為沒有保護）；App active 且設定完整                        | 10 分 |
 | [02](labs/02/README.md) | 從 401 一路追到 Protected Resource Metadata，再到 Signet metadata | 能說出「Client 怎麼知道要去哪裡登入」                               | 15 分 |
 | [03](labs/03/README.md) | PKCE 登入，並看 Server 如何驗 Token                               | 登入後呼叫成功；知道驗了簽章、issuer、audience、expiry、access type | 20 分 |
 | [04](labs/04/README.md) | 觀察 scope 與 resource 隔離                                       | 缺少寫入權限被擋；A 的 Token 打不進 B                               | 20 分 |
@@ -108,7 +108,7 @@ uv sync --project python --frozen
 
 最後 5 分鐘 Q&A。
 
-**關於你的 Client App 核准**：Lab 01 你會建立自己的 Client App，Lab 02 進行時講師會核准，Lab 03 開始使用你自己的 Client ID。如果到 Lab 03 還在等待，改用講師的備援 ID 繼續，不要卡住。
+**關於你的 Client App**：新版 Signet 可自行填入 notes scopes 與 allowed resources，註冊頁明示立即啟用。Lab 01 建立後務必重新開啟詳情／編輯頁複核，Lab 03 使用自己的 ID。若現場顯示 pending 或設定有問題，請助教協助，必要時使用備援 ID。
 
 ## 先備概念速查
 
@@ -166,7 +166,7 @@ Server 提供三個工具：`whoami`、`list_notes`、`create_note`。筆記只�
 
 ## 設計取捨（進階，可課後閱讀）
 
-- 授權與 MCP 傳輸層皆以 2026-07-28 為準：授權流程（discovery、PKCE、`resource` 參數、`iss` 檢查、scope 與 403 `insufficient_scope`）照授權規範；傳輸層已取消 `initialize` 交握，每個請求都帶 `MCP-Protocol-Version`、`Mcp-Method`、`Mcp-Name` 與 `_meta`。Go 使用 go-sdk v1.8.0（`Stateless: true`），Python 使用 `mcp` 2.3.0（`stateless_http=True`）。Claude Code / Codex CLI 是否已支援新版傳輸、不支援時如何退回舊版，尚未核對。
+- 授權與 MCP 傳輸層皆以 2026-07-28 為準：授權流程（discovery、PKCE、`resource` 參數、`iss` 檢查、scope 與 403 `insufficient_scope`）照授權規範；傳輸層已取消 `initialize` 交握，每個請求都帶 `MCP-Protocol-Version`、`Mcp-Method`、`Mcp-Name` 與 `_meta`。Go 使用 go-sdk v1.8.0（`Stateless: true`），Python 使用 `mcp` 2.3.0（`stateless_http=True`）。Claude Code / Codex CLI 的實際連線與工具呼叫結果見驗證紀錄；Client 可能使用 SDK 提供的舊版相容路徑，不能只憑 Connected 推論所用協定版本。
 - 參考 Client 依 RFC 9207 檢查回呼的 `iss`：Signet 宣告 `authorization_response_iss_parameter_supported` 時，缺少 `iss` 就拒絕；有 `iss` 時必須與記錄的 issuer 完全相同。
 - Lab 01 刻意沒有授權；Lab 02 刻意只回 discovery challenge、尚不接受 Token。這兩關是明確的教學中間狀態，不是 bug。
 - Labs 03–05 使用 RS256 + JWKS，這是本教材的選擇，MCP 規範並未強制使用 JWT。所有受保護關卡從一開始就驗證 audience。

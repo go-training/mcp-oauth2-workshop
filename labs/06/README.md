@@ -21,18 +21,29 @@ set +a
 
 ## 操作
 
-課前由講師下載／編譯映像。Docker Compose v2 必須可用。從 repo 根目錄、已載入 `.env` 的終端執行：
+先停止 Lab 05。確認 `docker info` 與 `docker compose version` 成功；只有 Compose 指令存在、daemon 沒啟動仍不能操作。
+
+課前在實際操作電腦下載／編譯映像（Go 路線也要有 `python3` 執行設定產生器）：
+
+```bash
+# 課前執行，可能需要數分鐘與網路；LAB_LANGUAGE 選 go 或 python。
+docker compose --env-file .env -f labs/06/compose.yml --profile "$LAB_LANGUAGE" build
+```
+
+課堂啟動使用 `--no-build`，避免重抓 GitHub build context。若提示 image 不存在，先完成上面的課前建置。Docker Compose v2 以上必須可用。從 repo 根目錄、已載入 `.env` 的終端執行：
 
 ```bash
 python3 scripts/configure_gateway.py
-# 產生的 .runtime/kong.yml 與 .env 都含本機憑證，已被 Git 忽略。
+# 產生的 labs/06/.runtime/kong.yml 與 .env 都含本機憑證，已被 Git 忽略。
 # 選一個 profile，不要同時啟動 go 與 python。
-docker compose --env-file .env -f labs/06/compose.yml --profile "$LAB_LANGUAGE" up --build -d
+docker compose --env-file .env -f labs/06/compose.yml --profile "$LAB_LANGUAGE" up --no-build -d --wait --wait-timeout 120
 curl -i http://localhost:9000/mcp
 curl -s http://localhost:9000/.well-known/oauth-protected-resource/mcp
 ```
 
-預期 401 與正確 PRM。Kong 的 resource 是 `http://localhost:9000/mcp`，講師必須事先加入 Signet Client 的 allowed resources。
+`--wait` 會等待容器就緒；若逾時先看下方 logs，不要立刻把 Empty reply 誤判成 OAuth 失敗。
+
+預期 401 與正確 PRM。Kong 的 resource 是 `http://localhost:9000/mcp`，你必須事先在自己的 Signet App 加入這個 allowed resource。
 
 ```bash
 ./scripts/oauth.sh "$LAB_LANGUAGE" login --resource http://localhost:9000/mcp --scopes 'notes:read notes:write' --token-file .tokens/lab06.json
@@ -41,6 +52,17 @@ curl -s http://localhost:9000/.well-known/oauth-protected-resource/mcp
 ```
 
 在 Claude Code／Codex 新增另一個名稱 `workshop-gateway`，URL 改成 `http://localhost:9000/mcp`，沿用 [public Client 登入方式](../../docs/clients.md)。必須重新為 Gateway resource 授權，不能沿用 8000 的 Token。
+
+### 可直接執行的拒絕測試
+
+```bash
+./scripts/oauth.sh "$LAB_LANGUAGE" login --resource http://localhost:9000/mcp --scopes notes:read --token-file .tokens/lab06-read.json
+./scripts/oauth.sh "$LAB_LANGUAGE" call --resource http://localhost:9000/mcp --token-file .tokens/lab06-read.json --tool create_note --text '應被拒絕'
+# 預期 403，非零退出是成功驗收。
+./scripts/oauth.sh "$LAB_LANGUAGE" login --resource http://localhost:8000/mcp --scopes notes:read --token-file .tokens/lab06-a.json
+./scripts/oauth.sh "$LAB_LANGUAGE" call --resource http://localhost:9000/mcp --token-file .tokens/lab06-a.json --allow-cross-resource
+# 預期 401。先確認上一步已成功存檔，否則只是在測試沒有 Token。
+```
 
 ## 對照與練習
 
