@@ -39,7 +39,22 @@ curl http://localhost:8000/healthz
 依 [學員 Client App 逐步教學](../../docs/signet-client-app.md) 操作：
 
 1. 登入 `https://signet.wu-boy.com`，開啟「開發 → 我的應用程式 → 註冊新應用程式」。
-2. 建立 `hwdc-2026-seat-你的編號`，選 **public**、啟用 **Authorization Code Flow**，取消預設 Device Flow，填入教學列出的三個 callbacks。
+2. 建立 `hwdc-2026-seat-你的編號`，選 **public**、啟用 **Authorization Code Flow**，取消預設 Device Flow。在「Redirect URIs / Callback URLs」逐筆填入以下三個 URL，每筆按 Enter，確認形成三個標籤：
+
+   ```text
+   http://127.0.0.1:8765/callback
+   http://127.0.0.1:8766/callback
+   http://localhost:8767/callback
+   ```
+
+   | Port | 本課程用途 |
+   | ---- | ---------- |
+   | 8765 | `./scripts/oauth.sh` 使用的 Go／Python Client |
+   | 8766 | Codex CLI（依教材固定 callback） |
+   | 8767 | Claude Code（依教材固定 callback port） |
+
+   這些 URL 是授權完成後瀏覽器回到本機 Client 的位置。請照填 `127.0.0.1` 與 `localhost`，不要互換，也不要加結尾 `/`；MCP 的 `/mcp` URL 請填在下一步的 Allowed Resources。
+
 3. 保留 `email profile`，加入 `openid notes:read notes:write`。在「允許的資源 / Allowed Resources」逐筆複製以下完整 URL，每筆按 Enter，確認形成三個標籤：
 
    ```text
