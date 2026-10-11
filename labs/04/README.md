@@ -12,6 +12,58 @@ Lab 03 已確認「你是誰」，本關要透過實際呼叫工具，確認「�
 - **適用對象（audience）：** 給 Server A 的 Token，不能拿去存取 Server B。
 - **帳號隔離（subject）：** 同一台 Server 上，不同帳號只能看到自己的筆記。
 
+## 權限與適用對象的 Sequence Diagram
+
+以下兩張圖對應接下來的兩組操作。圖中的「登入授權、取得 Token」包含 Lab 03 的瀏覽器登入與 PKCE 換 Token 流程，細節可回看 [Lab 03](../03/README.md#從登入到取得-token-的-sequence-diagram)。
+
+### 1. scope：讀取成功，寫入需要額外權限
+
+```mermaid
+sequenceDiagram
+    participant C as Client（oauth.sh）
+    participant S as Signet（授權伺服器）
+    participant A as MCP Server A（8000）
+
+    C->>S: 登入授權、取得 Token<br/>resource 指向 A，scope 為 notes:read
+    S-->>C: A 的讀取 Token
+    C->>A: list_notes + 讀取 Token
+    A-->>C: 200，回傳筆記清單
+    C->>A: create_note + 同一份讀取 Token
+    A-->>C: 403 insufficient_scope，不新增筆記
+
+    Note over C,S: 使用同一個帳號，重新執行 login 並允許讀寫權限
+    C->>S: 登入授權、取得新 Token<br/>resource 指向 A，scope 為 notes:read notes:write
+    S-->>C: A 的讀寫 Token（另存新檔）
+    C->>A: create_note + 讀寫 Token
+    A-->>C: 200，新增筆記成功
+```
+
+**觀察重點：** 補權限後要使用新取得的 Token；原本的讀取 Token 不會自動增加寫入權限。
+
+### 2. audience：A 的 Token 不能用在 B
+
+```mermaid
+sequenceDiagram
+    participant C as Client（oauth.sh）
+    participant S as Signet（授權伺服器）
+    participant B as MCP Server B（8001）
+
+    Note over C: 已持有上一段取得的 A 讀取 Token
+    C->>B: whoami + A 的 Token<br/>使用 --allow-cross-resource 進行本機測試
+    Note over B: 檢查 audience，發現 Token 不適用於 B
+    B-->>C: 401，拒絕請求
+
+    C->>S: 登入授權、取得新 Token<br/>resource 指向 B，scope 為 notes:read
+    S-->>C: B 的讀取 Token（另存新檔）
+    C->>B: whoami + B 的 Token
+    Note over B: Token 驗證通過
+    B-->>C: 200，回傳身分資訊（含 subject）
+```
+
+**觀察重點：** 即使是同一個帳號、同樣的讀取權限，也要取得適用於 B 的 Token。這裡的 `401` 是適用對象錯誤；上一張圖的 `403` 則是缺少寫入權限。
+
+後面的帳號隔離練習會再確認：同一台 Server 收到不同帳號的有效 Token 時，會依 `subject` 回傳各自的筆記。
+
 ## 環境設定
 
 所有指令從 repo 根目錄執行。每個終端先選語言並載入設定：
