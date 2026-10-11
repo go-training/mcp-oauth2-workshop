@@ -32,7 +32,9 @@ curl http://localhost:8000/healthz
 
 依 [兩套 CLI 指引](../../docs/clients.md#lab-01未授權版本) 接上 Client。輸入：「請使用 workshop 的 whoami 工具，接著列出筆記。」不要把模型自行回答當成工具呼叫成功，要看工具紀錄。
 
-## 操作 B：登入 Signet，建立自己的 Client App（約 6 分鐘）
+## 操作 B：為 Lab 3 預先準備：登入 Signet，建立自己的 Client App（約 6 分鐘）
+
+這裡登入的是 Signet 的應用程式管理介面，先建立 Lab 3 授權流程所需的 Client App。Lab 1 的 MCP 工具仍可匿名呼叫；Lab 2 只探索授權資訊，不需要 Client ID，也不需登入。直到 Lab 3 才會使用這個 Client ID 進行 OAuth 授權並取得 Token。
 
 依 [學員 Client App 逐步教學](../../docs/signet-client-app.md) 操作：
 
@@ -53,11 +55,14 @@ curl http://localhost:8000/healthz
 
 新版立即啟用，不需排隊等講師核准。若現場畫面仍是 pending，請助教確認部署政策，可先做 Lab 02 或使用備援 public Client ID。App 的 public 是 OAuth 類型，不代表所有人都能管理你的 App。
 
-## 觀察與練習
+## 觀察重點
 
-- 找到 `server/discover`、`tools/list`、`tools/call`（2026-07-28 版沒有 `initialize` 交握）；理解 Client / Server 的角色即可，不從零實作 JSON-RPC。
-- 在 Go 的 `NewHandler` / Python 的 `create_app` 找到三個工具定義，修改 `whoami` 的描述並重啟。
-- 思考：如果這是公司的工具，誰能呼叫？Client 傳入 `X-MCP-Subject` 能代表真實身分嗎？後面各關都不能信任這種自稱身分。
+- 查看 AI CLI 的工具紀錄，確認它確實呼叫了 `whoami`、`list_notes`，並收到 Server 回傳的結果。理解 Client 發出請求、Server 執行工具的角色即可，此時不必記住協定方法名稱。
+- 思考：目前任何連上 Server 的人都能讀寫共用筆記，要如何限制？Lab 2 會先探索授權資訊，Lab 3 再加入登入授權與 Token 驗證。
+
+## 選做練習
+
+在 Go 的 `NewHandler` / Python 的 `create_app` 找到三個工具定義，修改 `whoami` 的描述並重啟 Server，重新連線後查看工具描述的變化。這項練習不列入驗收，可略過並繼續下一關。
 
 ## 驗收
 
