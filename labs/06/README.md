@@ -92,36 +92,93 @@ curl -s http://localhost:9000/.well-known/oauth-protected-resource/mcp
 
 在 Claude Code／Codex 新增另一個名稱 `workshop-gateway`，URL 改成 `http://localhost:9000/mcp`，沿用 [public Client 登入方式](../../docs/clients.md)。必須重新為 Gateway resource 授權，不能沿用 8000 的 Token。
 
-### 可直接執行的拒絕測試
+## 對照與練習：誰負責擋下請求？
+
+前面的操作已經用 `notes:read notes:write` Token 成功呼叫工具。接下來用兩個拒絕情境，確認 **Kong 驗入口，MCP backend 管 Tool 權限**。選 Go 或 Python 一條路線完成即可。
+
+### 練習 1：能進入口，不代表能使用所有 Tool
+
+重新登入，這次只申請 `notes:read`。先呼叫 `whoami`，再用**同一個 Token 檔案**嘗試寫入筆記：
 
 ```bash
 ./scripts/oauth.sh "$LAB_LANGUAGE" login --resource http://localhost:9000/mcp --scopes notes:read --token-file .tokens/lab06-read.json
+./scripts/oauth.sh "$LAB_LANGUAGE" call --resource http://localhost:9000/mcp --token-file .tokens/lab06-read.json --tool whoami
 ./scripts/oauth.sh "$LAB_LANGUAGE" call --resource http://localhost:9000/mcp --token-file .tokens/lab06-read.json --tool create_note --text '應被拒絕'
-# 預期 403，非零退出是成功驗收。
-./scripts/oauth.sh "$LAB_LANGUAGE" login --resource http://localhost:8000/mcp --scopes notes:read --token-file .tokens/lab06-a.json
-./scripts/oauth.sh "$LAB_LANGUAGE" call --resource http://localhost:9000/mcp --token-file .tokens/lab06-a.json --allow-cross-resource
-# 預期 401。先確認上一步已成功存檔，否則只是在測試沒有 Token。
 ```
 
-## 對照與練習
+| 觀察          | 預期結果                     | 代表什麼                                              |
+| ------------- | ---------------------------- | ----------------------------------------------------- |
+| `whoami`      | 成功，回傳身分資訊           | Token 通過 Kong 的入口驗證，也通過 backend 的身分檢查 |
+| `create_note` | HTTP 403，缺少 `notes:write` | MCP backend 仍會檢查個別 Tool 的權限                  |
 
-- 說明新增第二個 MCP 服務時，哪些驗證可沿用 Gateway 的做法，哪些 Tool／資料權限仍需由新服務實作。
-- 檢查 [Kong 設定產生器](../../scripts/configure_gateway.py)：issuer、resource path、required scopes。
-- PRM 路徑與 `/mcp` 都需要匹配 Kong route，`strip_path=false` 保留後端的 `/mcp`，`preserve_host=true` 保留 Client 入口 Host。
-- Go `authorize` / Python `Authorization.__call__` 的 Lab 06 分支顯示 Gateway 信任邊界。
-- 使用只含 `notes:read` 的新 Token，`create_note` 仍由 backend 回 403。
-- 用 A（8000）的 Token 打 Gateway（9000），應回 401。
-- 直接傳 `X-MCP-Subject: admin` 不能偽造身分；共用 header 只在 Gateway 信任邊界內使用。
+**檢查點：** 同一顆 Token 可以查身分，卻不能寫筆記。這就是 MCP 服務仍需保留的業務權限判斷。
 
-## 撤銷限制
+### 練習 2：有效的 Token，也可能不是發給這個入口的
 
-本次固定版本的 plugin 只做離線 JWT 驗證，**不具備即時撤銷能力**。不要以「接上 Kong」推論已解決撤銷；課堂提醒此限制即可；撤銷與 introspection 的取捨留到課後選修 [Lab 05](../05/README.md)，本 repo 不修改 plugin。
+這次取得發給 `8000` 的 Token，刻意拿去呼叫 `9000` 的 Gateway。登入前確認自己的 Signet App 已允許這兩個 resource；不需重啟 Lab 04 的 Server。
+
+```bash
+./scripts/oauth.sh "$LAB_LANGUAGE" login --resource http://localhost:8000/mcp --scopes notes:read --token-file .tokens/lab06-a.json
+./scripts/oauth.sh "$LAB_LANGUAGE" call --resource http://localhost:9000/mcp --token-file .tokens/lab06-a.json --allow-cross-resource
+```
+
+**預期：** 登入成功後，第二行收到 HTTP 401。Kong 會檢查 audience，拒絕不是發給 Gateway resource 的 Token。
+
+`--allow-cross-resource` 只是讓練習用 Client 送出這個刻意錯誤的請求，不會關閉 Kong 的驗證。若看到找不到 Token 檔案或登入失敗，請先處理第一行；那些錯誤不算通過這個練習。
+
+**檢查點：** 說出練習 1 和練習 2 的差別：前者是「沒有寫入權限」，後者是「Token 發給了別的服務」。預期的 403／401 都會讓指令以非零狀態結束，這裡代表拒絕測試成功，不必為了讓指令成功而放寬權限。
+
+### 練習 3：確認 Client 只能從 Gateway 進入
+
+查看目前容器與對外發布的 port：
+
+```bash
+docker compose --env-file .env -f labs/06/compose.yml --profile "$LAB_LANGUAGE" ps
+```
+
+在 `PORTS` 欄確認：
+
+- Kong 有 `127.0.0.1:9000->8000/tcp` 的主機 port 映射，Client 從這裡連入。
+- 你選擇的 `mcp-go` 或 `mcp-python` 沒有主機 port 映射。若只看到 `8000/tcp`，那是容器 port，不代表已發布到主機。
+
+**檢查點：** backend 沒有直接對外發布 port，且程式會檢查 Gateway 憑證，才能信任 Gateway 傳來的使用者身分。只加一個 `X-MCP-Subject: admin` header，不能取代這些檢查。
+
+完成後試著回答：「如果明天新增一個訂單 MCP 服務，還需要自己寫 JWT 驗簽嗎？誰決定使用者能不能修改某筆訂單？」本關的分工是：JWT 驗證交給 Kong；訂單 Tool 與資料權限由訂單服務負責，並為新服務設定對應的 Gateway route、resource 與入口 scope。
+
+## 撤銷限制：本關只需記住一件事
+
+**Token 被撤銷，不代表本關的 Kong 會立刻拒絕它。** 本教材固定版本的 plugin 只做離線 JWT 驗證，不會在每次請求時向 Signet 查詢撤銷狀態。因此尚未到期、也符合其他檢查的 Token，撤銷後仍可能通過入口。
+
+本關不做撤銷實作，也不以撤銷結果驗收；先完成上面的入口與 Tool 權限練習即可。想觀察「同一顆 Token 撤銷後立即被拒絕」，再做課後選修 [Lab 05](../05/README.md) 的 introspection 練習。
 
 ## 驗收與清理
 
-能說出 Gateway 減少了哪些重複工作，以及為何 backend 仍需保留 Tool／資料權限。兩種 backend 各自透過 Kong 成功呼叫，錯 audience 被拒、工具 scope 仍有效、後端沒有 host port。容器實測狀態見 [驗證紀錄](../../docs/validation.md)。
+### 完成前，確認這五件事
+
+- [ ] 已用選擇的 Go **或** Python backend，透過 `9000` 成功查詢身分與寫入筆記。
+- [ ] 只含 `notes:read` 的 Token 可以呼叫 `whoami`，但呼叫 `create_note` 收到 403。
+- [ ] 發給 `8000` 的 Token 呼叫 `9000` 收到 401。
+- [ ] 容器列表只有 Kong 發布主機 port，MCP backend 沒有主機 port 映射。
+- [ ] 能用自己的話說明：「Kong 集中驗 Token 與入口權限，MCP 服務專注 Tool，並保留工具與資料權限檢查。」
+
+### 結果不符合預期時
+
+先看容器是否啟動，再查看最近的日誌：
 
 ```bash
+docker compose --env-file .env -f labs/06/compose.yml --profile "$LAB_LANGUAGE" ps
 docker compose --env-file .env -f labs/06/compose.yml --profile "$LAB_LANGUAGE" logs --tail 50
-docker compose --env-file .env -f labs/06/compose.yml --profile "$LAB_LANGUAGE" down
 ```
+
+容器未啟動或連線失敗時，先修正啟動問題；有 HTTP 回應後，再核對使用的 Token 檔案、resource 與 scopes。找助教時提供失敗步驟和錯誤訊息，不要貼 Token、`.env` 或產生的 `kong.yml`。講師彩排結果另見 [驗證紀錄](../../docs/validation.md)。
+
+### 練習完成後，停止容器
+
+確認已完成驗收，再執行清理：
+
+```bash
+docker compose --env-file .env -f labs/06/compose.yml --profile "$LAB_LANGUAGE" down
+docker compose --env-file .env -f labs/06/compose.yml --profile "$LAB_LANGUAGE" ps
+```
+
+**預期：** 第二行不再列出本關執行中的容器，Gateway 的 `9000` 入口停止服務。筆記存在 backend 記憶體中，容器移除後不會保留。這個步驟不會撤銷 Signet Token；若要重做練習，重新啟動容器，Token 過期時再登入。
