@@ -44,12 +44,12 @@ chmod 600 .env
 
 編輯 `.env`：
 
-| 變數                     | 怎麼填                                                                                         |
-| ------------------------ | ---------------------------------------------------------------------------------------------- |
-| `SIGNET_ISSUER`          | **保持預設** `https://signet.wu-boy.com`（結尾不要加斜線）                                     |
+| 變數                     | 怎麼填                                                                                               |
+| ------------------------ | ---------------------------------------------------------------------------------------------------- |
+| `SIGNET_ISSUER`          | **保持預設** `https://signet.wu-boy.com`（結尾不要加斜線）                                           |
 | `OAUTH_CLIENT_ID`        | 填入你自己的 Client App ID（Lab 01 建立並確認 active 後取得）；設定尚未完成時可先用講師提供的備援 ID |
-| `INTROSPECTION_CLIENT_*` | 先留空，Lab 05 時講師會發給你                                                                  |
-| `GATEWAY_SHARED_SECRET`  | 先留空，Lab 06 才使用                                                                          |
+| `INTROSPECTION_CLIENT_*` | 先留空，Lab 05 時講師會發給你                                                                        |
+| `GATEWAY_SHARED_SECRET`  | 先留空，Lab 06 才使用                                                                                |
 
 > **每開一個新終端都要重新載入 `.env`**，否則 Lab 會讀不到設定：
 >
@@ -99,7 +99,7 @@ uv sync --project python --frozen
 
 | Lab                     | 你要做什麼                                                        | 完成的標準                                                          | 時間  |
 | ----------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------- | ----- |
-| [01](labs/01/README.md) | 呼叫沒有授權的 MCP；登入 Signet、建立自己的 public Client App     | 工具呼叫成功（因為沒有保護）；App active 且設定完整                        | 10 分 |
+| [01](labs/01/README.md) | 呼叫沒有授權的 MCP；登入 Signet、建立自己的 public Client App     | 工具呼叫成功（因為沒有保護）；App active 且設定完整                 | 10 分 |
 | [02](labs/02/README.md) | 從 401 一路追到 Protected Resource Metadata，再到 Signet metadata | 能說出「Client 怎麼知道要去哪裡登入」                               | 15 分 |
 | [03](labs/03/README.md) | PKCE 登入，並看 Server 如何驗 Token                               | 登入後呼叫成功；知道驗了簽章、issuer、audience、expiry、access type | 20 分 |
 | [04](labs/04/README.md) | 觀察 scope 與 resource 隔離                                       | 缺少寫入權限被擋；A 的 Token 打不進 B                               | 20 分 |

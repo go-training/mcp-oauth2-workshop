@@ -40,10 +40,10 @@ codex
 
 學員建立 App 時填入下列**精確** callback，建立後重新開啟編輯頁複核；共用備援 App 也使用相同設定：
 
-| 用途 | Redirect URI |
-| --- | --- |
-| 本 repo Go/Python 參考 Client | `http://127.0.0.1:8765/callback` |
-| Codex（以下指令固定 override） | `http://127.0.0.1:8766/callback` |
+| 用途                             | Redirect URI                     |
+| -------------------------------- | -------------------------------- |
+| 本 repo Go/Python 參考 Client    | `http://127.0.0.1:8765/callback` |
+| Codex（以下指令固定 override）   | `http://127.0.0.1:8766/callback` |
 | Claude Code（以下指令固定 port） | `http://localhost:8767/callback` |
 
 ### Claude Code
@@ -80,10 +80,10 @@ codex -c 'mcp_oauth_callback_port=8766' -c 'mcp_oauth_callback_url="http://127.0
 
 沿用以上新增與登入指令，將名稱和 URL 一起更換；Codex 的 `--oauth-resource` 也必須同步更換。
 
-| 場景 | 名稱 | URL / resource |
-| --- | --- | --- |
-| Lab 04 第二個 Server | `workshop-b` | `http://localhost:8001/mcp` |
-| Lab 06 Gateway | `workshop-gateway` | `http://localhost:9000/mcp` |
+| 場景                 | 名稱               | URL / resource              |
+| -------------------- | ------------------ | --------------------------- |
+| Lab 04 第二個 Server | `workshop-b`       | `http://localhost:8001/mcp` |
+| Lab 06 Gateway       | `workshop-gateway` | `http://localhost:9000/mcp` |
 
 不同 resource 需要各自取得 Token，不能只改連線 URL 然後沿用舊 Token。
 

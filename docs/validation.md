@@ -8,16 +8,16 @@
 
 環境：Signet `v1.6.0-2-gc4d3d86`、本機 Go 1.26.7、Python 3.12.13、Claude Code 2.1.263、Codex 0.162.1、Docker 29.2.1、Compose 5.1.4。真實 issuer 為 `https://signet.wu-boy.com`。
 
-| 項目 | 本輪真實結果 |
-| --- | --- |
-| Lab 01／Go、Python | 匿名 whoami、create_note、list_notes 均 200 |
-| Lab 01／Signet UI | 新建專用 public App，五個 scopes、三個 callbacks、三個 resources 保存，立即 active；編輯描述與授權紀錄可查看 |
-| Lab 02／Go、Python | 無 Token 401、有 Token 仍 401；challenge、PRM、真實 Signet metadata 正確 |
-| Lab 03／Go、Python | 新的 Go read、Python read+write PKCE 登入成功；無 Token 401，有效 Token 200 |
-| Lab 04／Go、Python | read 可讀、write 403；read+write 可建立／列出筆記；A Token 打 B 401，B Token 200 |
-| Lab 05／Go、Python | 真實啟動均因缺 introspection ID/secret 拒絕；本機 fixture 的撤銷與 outage 測試通過，但不等於真實服務通過 |
+| 項目                        | 本輪真實結果                                                                                                                                    |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| Lab 01／Go、Python          | 匿名 whoami、create_note、list_notes 均 200                                                                                                     |
+| Lab 01／Signet UI           | 新建專用 public App，五個 scopes、三個 callbacks、三個 resources 保存，立即 active；編輯描述與授權紀錄可查看                                    |
+| Lab 02／Go、Python          | 無 Token 401、有 Token 仍 401；challenge、PRM、真實 Signet metadata 正確                                                                        |
+| Lab 03／Go、Python          | 新的 Go read、Python read+write PKCE 登入成功；無 Token 401，有效 Token 200                                                                     |
+| Lab 04／Go、Python          | read 可讀、write 403；read+write 可建立／列出筆記；A Token 打 B 401，B Token 200                                                                |
+| Lab 05／Go、Python          | 真實啟動均因缺 introspection ID/secret 拒絕；本機 fixture 的撤銷與 outage 測試通過，但不等於真實服務通過                                        |
 | Lab 06／Go、Python profiles | 分別建置並 `up --wait` 成功；有效 Token 200、建立筆記 200、錯 audience 401、read-only 寫入 403、偽造 subject 被覆寫，backend 沒有發布 host port |
-| Lab 06／撤銷限制 | 真實 Signet 接受撤銷 Gateway read Token，同一檔案呼叫 Kong 仍 200，符合離線驗證的限制 |
+| Lab 06／撤銷限制            | 真實 Signet 接受撤銷 Gateway read Token，同一檔案呼叫 Kong 仍 200，符合離線驗證的限制                                                           |
 
 本輪 Labs 01–04 共 30 個 HTTP 狀態斷言與兩份 PRM 斷言；兩個 Gateway profiles 各 5 個 HTTP 斷言。兩套參考 Client 另有實際呼叫驗證。Token 全部保存為被忽略的 0600 檔案，未記錄 raw token。
 
@@ -58,14 +58,14 @@
 
 Client `e15b4afb-f989-4baf-afe9-a5dc98e17fa0` 已確認 active、具有 `notes:read notes:write` 與 8000 / 8001 / 9000 三個完整 resource。使用瀏覽器既有 appleboy 身分，Go / Python 參考 Client 均完成真實 Authorization Code + PKCE；取得的 Token 為 `type=access`，issuer 正確、audience 對應所請求 resource，檔案權限 0600。整個流程未輸出 raw access token。
 
-| 驗收 | Go | Python |
-| --- | --- | --- |
-| Lab 03：無 Token 401、真實 Token 呼叫成功 | 通過 | 通過 |
-| Lab 04：read Token 可讀、寫入 403；read+write 可建立並讀取筆記 | 通過 | 通過 |
-| Lab 04：A Token 到 B 回 401，B 自己的 Token 成功 | 通過 | 通過 |
-| Lab 06：9000 Token 經真實 Kong 呼叫、寫入成功 | 通過 | 通過 |
-| Lab 06：8000 Token 被拒、read-only 寫入 403 | 通過 | 通過 |
-| Lab 06：外部偽造 `X-MCP-Subject` 被正確身分覆寫 | 通過 | 通過 |
+| 驗收                                                           | Go   | Python |
+| -------------------------------------------------------------- | ---- | ------ |
+| Lab 03：無 Token 401、真實 Token 呼叫成功                      | 通過 | 通過   |
+| Lab 04：read Token 可讀、寫入 403；read+write 可建立並讀取筆記 | 通過 | 通過   |
+| Lab 04：A Token 到 B 回 401，B 自己的 Token 成功               | 通過 | 通過   |
+| Lab 06：9000 Token 經真實 Kong 呼叫、寫入成功                  | 通過 | 通過   |
+| Lab 06：8000 Token 被拒、read-only 寫入 403                    | 通過 | 通過   |
+| Lab 06：外部偽造 `X-MCP-Subject` 被正確身分覆寫                | 通過 | 通過   |
 
 上述為實際啟動兩種語言 Server 與兩個 Compose profiles 的結果，包含 20 個 Lab 03/04 HTTP 斷言與 10 個 Gateway HTTP 斷言；並另用 Go / Python 參考 Client 分別呼叫實際 Server。此次使用 Compose `up -d --wait` 等待 Kong 就緒。
 
@@ -109,14 +109,14 @@ Lab 05 另外需要獨立 confidential introspection Client 憑證。此次未�
 
 本輪實際使用 `https://signet.wu-boy.com`、Claude Code 2.1.263、Go / Python Server 與 Docker 29.2.1。以下是新增證據；下方較早紀錄的「瀏覽器不可用」「Docker daemon 未啟動」已不適用本輪。
 
-| Lab | 本輪實際結果 | 尚未驗收 |
-| --- | --- | --- |
-| 01 | Go / Python 匿名工具呼叫、建立與讀取筆記成功；Python 的 Claude `mcp get` 顯示 Connected；Go 工具探索失敗，見問題 1。透過 Signet `/apps/new` 建立專用 public App、取得 pending、編輯描述成功 | 一般非管理員身分操作；AI CLI 由模型實際呼叫工具 |
-| 02 | 兩種語言均取得 401、challenge、PRM；兩個參考 Client 成功讀取真實 AS metadata；OIDC discovery / RS256 JWKS 可讀 | 無：本關 discovery 主線已完成 |
-| 03 | 兩種語言均以真實 issuer 啟動、未帶 Token 回 401；pending App 的 PKCE 授權頁回 `unauthorized_client` | 已核准 App 的 PKCE、真實 access token 驗簽、兩套 AI CLI 登入 |
-| 04 | 兩種語言以真實 issuer 啟動；scope、A/B audience、subject 隔離的本機 fixture 測試通過 | 真實 Signet read / write / B resource Token，以及第二個測試身分 |
-| 05 | 本機 fixture 的同一 Token 撤銷、503 fail-closed 測試通過；沒有 introspection 憑證時兩種語言均拒絕啟動 | 真實 confidential Client 憑證、有效 → 撤銷 → 401 |
-| 06 | Go / Python profiles 分別 build / 啟動成功，Kong healthy，backend 未發布 host port；401 與 9000 PRM 正確；偽造身分 header、無效 Bearer 被拒絕 | 真實 9000 Token 經 Kong 呼叫兩種 backend、read-only 寫入拒絕、8000 Token 跨 audience 拒絕 |
+| Lab | 本輪實際結果                                                                                                                                                                                | 尚未驗收                                                                                  |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| 01  | Go / Python 匿名工具呼叫、建立與讀取筆記成功；Python 的 Claude `mcp get` 顯示 Connected；Go 工具探索失敗，見問題 1。透過 Signet `/apps/new` 建立專用 public App、取得 pending、編輯描述成功 | 一般非管理員身分操作；AI CLI 由模型實際呼叫工具                                           |
+| 02  | 兩種語言均取得 401、challenge、PRM；兩個參考 Client 成功讀取真實 AS metadata；OIDC discovery / RS256 JWKS 可讀                                                                              | 無：本關 discovery 主線已完成                                                             |
+| 03  | 兩種語言均以真實 issuer 啟動、未帶 Token 回 401；pending App 的 PKCE 授權頁回 `unauthorized_client`                                                                                         | 已核准 App 的 PKCE、真實 access token 驗簽、兩套 AI CLI 登入                              |
+| 04  | 兩種語言以真實 issuer 啟動；scope、A/B audience、subject 隔離的本機 fixture 測試通過                                                                                                        | 真實 Signet read / write / B resource Token，以及第二個測試身分                           |
+| 05  | 本機 fixture 的同一 Token 撤銷、503 fail-closed 測試通過；沒有 introspection 憑證時兩種語言均拒絕啟動                                                                                       | 真實 confidential Client 憑證、有效 → 撤銷 → 401                                          |
+| 06  | Go / Python profiles 分別 build / 啟動成功，Kong healthy，backend 未發布 host port；401 與 9000 PRM 正確；偽造身分 header、無效 Bearer 被拒絕                                               | 真實 9000 Token 經 Kong 呼叫兩種 backend、read-only 寫入拒絕、8000 Token 跨 audience 拒絕 |
 
 `./scripts/check.sh` 本輪結果：**33 passed in 18.18s**，Go vet / tests、Python lint / format 均通過。這些包含本機 issuer 的測試，不能代替表中尚未驗收項目。
 
@@ -188,14 +188,14 @@ MCP 傳輸層使用 2026-07-28（無 `initialize` 交握，Go go-sdk v1.8.0、Py
 
 ## 尚未宣稱完成
 
-| 項目 | 原因／完成條件 |
-| --- | --- |
-| 新的現場 Signet 端到端驗證 | 部署 URL 與公開 discovery 已確認；仍待 Client ID 與測試身分，依 instructor checklist 彩排 |
-| 學員自助 Client App UI 完整流程 | 瀏覽器控制服務不可用，尚未登入網站驗證建立、核准、自己的 ID 登入；未建立或修改現場 App |
-| Claude Code / Codex 瀏覽器登入與 step-up | 目前核對文件與旗標，沒有使用真實課程身分完成互動登入 |
-| Kong 容器實際代理 Go / Python | 本機 Docker daemon 未啟動；Compose 設定可檢查，但不是容器 runtime 成功證明 |
-| 60 人集中登入容量 | 需在實際授權服務與會場網路條件下壓測 |
-| Windows + WSL2 | 需以學員相同環境彩排 callback 導流 |
+| 項目                                     | 原因／完成條件                                                                            |
+| ---------------------------------------- | ----------------------------------------------------------------------------------------- |
+| 新的現場 Signet 端到端驗證               | 部署 URL 與公開 discovery 已確認；仍待 Client ID 與測試身分，依 instructor checklist 彩排 |
+| 學員自助 Client App UI 完整流程          | 瀏覽器控制服務不可用，尚未登入網站驗證建立、核准、自己的 ID 登入；未建立或修改現場 App    |
+| Claude Code / Codex 瀏覽器登入與 step-up | 目前核對文件與旗標，沒有使用真實課程身分完成互動登入                                      |
+| Kong 容器實際代理 Go / Python            | 本機 Docker daemon 未啟動；Compose 設定可檢查，但不是容器 runtime 成功證明                |
+| 60 人集中登入容量                        | 需在實際授權服務與會場網路條件下壓測                                                      |
+| Windows + WSL2                           | 需以學員相同環境彩排 callback 導流                                                        |
 
 ## 已知設計取捨
 

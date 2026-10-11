@@ -33,11 +33,11 @@ curl -s http://localhost:8000/.well-known/oauth-protected-resource/mcp
 
 ### 逐項核對畫面
 
-| 步驟 | 你應看到什麼 | 看不到時先查 |
-| --- | --- | --- |
-| `curl -i /mcp` | `401`、`WWW-Authenticate: Bearer`，含 resource_metadata URL | 是否仍在跑 Lab 01 |
-| 讀 PRM | resource 是 `http://localhost:8000/mcp`，authorization_servers 是 Signet | 是否錯用另一個 port 或 MCP_RESOURCE |
-| `metadata` | issuer、authorize/token/JWKS endpoints、S256 | 新終端是否載入 .env、HTTPS 是否可達 |
+| 步驟           | 你應看到什麼                                                             | 看不到時先查                        |
+| -------------- | ------------------------------------------------------------------------ | ----------------------------------- |
+| `curl -i /mcp` | `401`、`WWW-Authenticate: Bearer`，含 resource_metadata URL              | 是否仍在跑 Lab 01                   |
+| 讀 PRM         | resource 是 `http://localhost:8000/mcp`，authorization_servers 是 Signet | 是否錯用另一個 port 或 MCP_RESOURCE |
+| `metadata`     | issuer、authorize/token/JWKS endpoints、S256                             | 新終端是否載入 .env、HTTPS 是否可達 |
 
 此關沒有瀏覽器登入，也不會產生 Token 檔。看懂以上三份資訊即可停止 Server，進入 Lab 03。
 

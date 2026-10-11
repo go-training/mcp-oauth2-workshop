@@ -22,18 +22,18 @@ Metadata 的 issuer 是 `https://signet.wu-boy.com`，宣告 S256 與 resource i
 
 課前寄出 [學員逐步教學](signet-client-app.md)。Lab 01 由學員完成以下欄位，建立後回詳情／編輯頁確認實際保存結果，再練習修改描述。Lab 02 不需要任何 Client ID，可用來排除個別設定問題。
 
-| 設定 | 應有的值 |
-| --- | --- |
-| Client type | public |
-| Authorization Code Flow | enabled |
-| Device Flow / Client Credentials / Personal API Key | 不啟用，建立後再複核 |
-| Scopes | `openid profile email notes:read notes:write` |
-| Redirect URIs | `http://127.0.0.1:8765/callback`、`http://127.0.0.1:8766/callback`、`http://localhost:8767/callback` |
-| Allowed resources | `http://localhost:8000/mcp`、`http://localhost:8001/mcp`、`http://localhost:9000/mcp` |
-| Owner | 建立該 App 的學員 |
-| Status | active／啟用；若仍 pending，請管理員確認部署政策 |
-| Skip Consent | 不勾選，保留授權畫面 |
-| Client secret | public Client 不需要 |
+| 設定                                                | 應有的值                                                                                             |
+| --------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Client type                                         | public                                                                                               |
+| Authorization Code Flow                             | enabled                                                                                              |
+| Device Flow / Client Credentials / Personal API Key | 不啟用，建立後再複核                                                                                 |
+| Scopes                                              | `openid profile email notes:read notes:write`                                                        |
+| Redirect URIs                                       | `http://127.0.0.1:8765/callback`、`http://127.0.0.1:8766/callback`、`http://localhost:8767/callback` |
+| Allowed resources                                   | `http://localhost:8000/mcp`、`http://localhost:8001/mcp`、`http://localhost:9000/mcp`                |
+| Owner                                               | 建立該 App 的學員                                                                                    |
+| Status                                              | active／啟用；若仍 pending，請管理員確認部署政策                                                     |
+| Skip Consent                                        | 不勾選，保留授權畫面                                                                                 |
+| Client secret                                       | public Client 不需要                                                                                 |
 
 標準 scopes 保留給 Codex add 的首次自動 OAuth；真正 MCP 登入仍明確申請 notes scopes。新增 scopes、callbacks、resources 都需按 Enter 成為標籤。已保存的自訂 scopes 在編輯頁有獨立鎖定區塊，修改描述不會移除。
 
@@ -62,15 +62,15 @@ Resource 逐字匹配。相同本機 URL 出現在不同學員電腦是同一個
 
 實際 URL 由 metadata 發現，不在範例中寫死 host。
 
-| 用途 | Signet 路徑 | 本課使用 |
-| --- | --- | --- |
-| AS metadata | `/.well-known/oauth-authorization-server` | discovery / PKCE 能力 |
-| OIDC discovery | `/.well-known/openid-configuration` | metadata fallback |
-| JWKS | `/.well-known/jwks.json` | RS256 驗簽 |
-| Authorize | `/oauth/authorize` | 使用者登入／同意 |
-| Token | `/oauth/token` | PKCE code 換 Token，帶 resource |
-| Introspect | `/oauth/introspect` | confidential Client Basic auth，每次請求查 active |
-| Revoke | `/oauth/revoke` | form token；課前確認參考 Client 可完成撤銷 |
+| 用途           | Signet 路徑                               | 本課使用                                          |
+| -------------- | ----------------------------------------- | ------------------------------------------------- |
+| AS metadata    | `/.well-known/oauth-authorization-server` | discovery / PKCE 能力                             |
+| OIDC discovery | `/.well-known/openid-configuration`       | metadata fallback                                 |
+| JWKS           | `/.well-known/jwks.json`                  | RS256 驗簽                                        |
+| Authorize      | `/oauth/authorize`                        | 使用者登入／同意                                  |
+| Token          | `/oauth/token`                            | PKCE code 換 Token，帶 resource                   |
+| Introspect     | `/oauth/introspect`                       | confidential Client Basic auth，每次請求查 active |
+| Revoke         | `/oauth/revoke`                           | form token；課前確認參考 Client 可完成撤銷        |
 
 `/oauth/revoke` 對不存在或已撤銷的 Token 仍可能回 200；必須再用相同 Token 呼叫 MCP 才能驗收。教材以 Resource Server 的允許／拒絕紀錄驗收；若要展示管理介面的事件紀錄，另行彩排並確認網站實際顯示的內容。
 

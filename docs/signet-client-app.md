@@ -27,16 +27,16 @@
 
 一人一個 App。建議用座位編號命名，方便助教識別，例如 `hwdc-2026-seat-023`；兩種語言與兩套 CLI 可以共用同一個自己的 Client ID。
 
-| 欄位 | 填寫內容 | 原因 |
-| --- | --- | --- |
-| 應用程式名稱 | `hwdc-2026-seat-023`，換成自己的編號 | 講師能找到你的申請 |
-| 描述 | `HWDC MCP Authorization workshop; Go` 或 `Python` | 練習編輯 App 的基本資料 |
-| Client 類型 | **公開 — SPA、CLI、行動應用程式（需要 PKCE）** | CLI 不持有 client secret |
-| 授權類型 | 勾選 **授權碼流程 / Authorization Code Flow** | 本課使用瀏覽器 + PKCE |
-| 裝置授權流程 / Device Flow | 取消勾選（新表單可能預設勾選） | 不在六關主線使用 |
-| Client Credentials Flow | 不勾選 | 這是使用者授權練習 |
-| Personal API Key | 不啟用 | 本課不用固定 API key 取代 OAuth |
-| 權限範圍 | 保留 `email profile`，加入 `openid notes:read notes:write` | Codex add 首次可能申請標準 scopes；MCP 使用 notes scopes |
+| 欄位                       | 填寫內容                                                   | 原因                                                     |
+| -------------------------- | ---------------------------------------------------------- | -------------------------------------------------------- |
+| 應用程式名稱               | `hwdc-2026-seat-023`，換成自己的編號                       | 講師能找到你的申請                                       |
+| 描述                       | `HWDC MCP Authorization workshop; Go` 或 `Python`          | 練習編輯 App 的基本資料                                  |
+| Client 類型                | **公開 — SPA、CLI、行動應用程式（需要 PKCE）**             | CLI 不持有 client secret                                 |
+| 授權類型                   | 勾選 **授權碼流程 / Authorization Code Flow**              | 本課使用瀏覽器 + PKCE                                    |
+| 裝置授權流程 / Device Flow | 取消勾選（新表單可能預設勾選）                             | 不在六關主線使用                                         |
+| Client Credentials Flow    | 不勾選                                                     | 這是使用者授權練習                                       |
+| Personal API Key           | 不啟用                                                     | 本課不用固定 API key 取代 OAuth                          |
+| 權限範圍                   | 保留 `email profile`，加入 `openid notes:read notes:write` | Codex add 首次可能申請標準 scopes；MCP 使用 notes scopes |
 
 ### Redirect URIs
 
@@ -147,16 +147,16 @@ AI CLI 備援用新名稱 `workshop-fallback`，將 [Client 指南](clients.md) 
 
 ## 常見卡點
 
-| 現象 | 處理 |
-| --- | --- |
-| pending 還不能登入 | 請講師完成設定與核准，先繼續 Lab 02 |
-| notes scopes 不在標籤列 | 查看「已儲存的自訂與管理 scopes」；新 scope 在輸入框按 Enter 新增 |
-| 找不到 Allowed Resources | 新版在 callbacks 下方；確認頁面版本並請助教協助 |
-| 建立時要求 redirect URI | 勾選 Authorization Code，新增三個 callback 標籤 |
-| public App 沒有 secret | 正常，PKCE 不需要共用 secret |
-| active 後仍 invalid_target | 回編輯頁核對三個完整 resource URL，不要跳過 audience 驗證 |
-| 同意畫面是講師的 App 名稱 | CLI 還在用備援 ID；新增自己的 entry 再登入 |
-| 修改 ID 後 whoami 一樣 | 正常，subject 代表登入使用者，不是 Client ID；以同意畫面的 App 名稱及 App 授權紀錄確認 |
+| 現象                       | 處理                                                                                   |
+| -------------------------- | -------------------------------------------------------------------------------------- |
+| pending 還不能登入         | 請講師完成設定與核准，先繼續 Lab 02                                                    |
+| notes scopes 不在標籤列    | 查看「已儲存的自訂與管理 scopes」；新 scope 在輸入框按 Enter 新增                      |
+| 找不到 Allowed Resources   | 新版在 callbacks 下方；確認頁面版本並請助教協助                                        |
+| 建立時要求 redirect URI    | 勾選 Authorization Code，新增三個 callback 標籤                                        |
+| public App 沒有 secret     | 正常，PKCE 不需要共用 secret                                                           |
+| active 後仍 invalid_target | 回編輯頁核對三個完整 resource URL，不要跳過 audience 驗證                              |
+| 同意畫面是講師的 App 名稱  | CLI 還在用備援 ID；新增自己的 entry 再登入                                             |
+| 修改 ID 後 whoami 一樣     | 正常，subject 代表登入使用者，不是 Client ID；以同意畫面的 App 名稱及 App 授權紀錄確認 |
 
 ## 現場彩排
 
