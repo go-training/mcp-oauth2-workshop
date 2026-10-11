@@ -9,7 +9,7 @@ Python 版本包含 MCP Resource Server 與 public OAuth Client。Signet 是外�
 | 檔案 | 職責 |
 | --- | --- |
 | [labs/01/main.py](labs/01/main.py) 至 [labs/06/main.py](labs/06/main.py) | 六個入口，分別呼叫 `run(1)` 至 `run(6)` |
-| [workshop/server.py](workshop/server.py) | 設定、Discovery、ASGI 授權 middleware、JWT、scope、introspection 與 MCP 工具 |
+| [workshop/server.py](workshop/server.py) | 設定、Discovery、ASGI 授權 middleware、JWT、scope 與 MCP 工具 |
 | [workshop/oauth.py](workshop/oauth.py) | public Client 的 `login`、`call`、`revoke`、`metadata` |
 | [workshop package 說明檔](workshop/__init__.py) | `__init__.py`，只有 package 說明，沒有啟動或註冊副作用 |
 | [pyproject.toml](pyproject.toml) | Python 需求、依賴、開發工具與 pytest 設定 |
@@ -25,7 +25,7 @@ Python 版本包含 MCP Resource Server 與 public OAuth Client。Signet 是外�
 
 - **MCP SDK**：工具註冊、schema、JSON-RPC 與 Streamable HTTP transport。
 - **PyJWT + crypto**：JWKS 公鑰取得與 RS256 JWT 驗證。
-- **HTTPX**：Discovery、introspection 與 Client 的 HTTP 請求。
+- **HTTPX**：Discovery 與 Client 的 HTTP 請求。
 - **Uvicorn**：執行 ASGI application。
 - **Starlette**：回應物件與 threadpool helper，透過依賴樹安裝。
 
@@ -37,7 +37,6 @@ flowchart LR
     Client[Python OAuth Client / AI CLI] -->|PKCE 換 Token| Signet
     Client -->|Bearer Token：Lab 03–05| Server[Python MCP Server]
     Server -->|Discovery / JWKS：Lab 03–05| Signet
-    Server -->|Introspection：Lab 05| Signet
     Client -->|Bearer Token：Lab 06| Kong[Kong Gateway]
     Kong -->|可信身分 Headers| Backend[Python Lab 06 backend]
     Server --> Notes[記憶體中的個人筆記]
@@ -52,10 +51,10 @@ Client 負責取得並攜帶 Token；Resource Server 負責判定 Token 是否�
 | [02](../labs/02/README.md) | 不建立已登入身分 | `/mcp` 固定回 401，即使攜帶有效 Token | challenge 與 Protected Resource Metadata |
 | [03](../labs/03/README.md) | JWT claims | JWT 簽章、claims、讀取 scope | 可信身分；此關尚不要求寫入 scope |
 | [04](../labs/04/README.md) | JWT claims | Lab 03 加上 `create_note` 寫入 scope | scope、使用者筆記與 audience 隔離 |
-| [05（課後選修）](../labs/05/README.md) | JWT claims | Lab 04 加上每次請求的 introspection | 同一顆 Token 撤銷後被下一次檢查拒絕 |
+| [05（課後選修）](../labs/05/README.md) | JWT claims | 沿用 Lab 04 的離線 JWT 與 scope 檢查 | Public Client 撤銷成功；離線驗證不保證立即拒絕 |
 | [06](../labs/06/README.md) | Gateway headers | shared secret、subject、issuer、audience、讀／寫 scope | Gateway 集中驗 Token，backend 保留工具權限檢查 |
 
-每關可獨立啟動，不需要修改前一關的程式。切換關卡會建立新的 application 與筆記 dict。Lab 06 不會繼續執行 Lab 05 的 JWT／introspection 分支。
+每關可獨立啟動，不需要修改前一關的程式。切換關卡會建立新的 application 與筆記 dict。Lab 06 不會繼續執行 Lab 05 的 JWT 分支。
 
 ## 3. 啟動、設定與 application 組成
 
@@ -77,7 +76,7 @@ uvicorn.run(create_app(Config.from_env(lab)), host=host, port=int(port), access_
 4. 建立 `stateless_http=True`、`json_response=True` 的 Streamable HTTP app，設定 Host／Origin transport security。
 5. 回傳 `Authorization(app, config)`，讓 SDK 的 HTTP 請求先經過授權 middleware。
 
-`Authorization.__init__` 會驗證 resource，建立 origin／metadata URL，並依關卡初始化 issuer、JWKS Client 與 introspection 設定。Labs 03–05 的 Discovery 在啟動時執行；建立 `PyJWKClient` 本身不等於已下載 JWKS，公鑰會在驗 Token 需要時取得。
+`Authorization.__init__` 會驗證 resource，建立 origin／metadata URL，並依關卡初始化 issuer 與 JWKS Client 設定。Labs 03–05 的 Discovery 在啟動時執行；建立 `PyJWKClient` 本身不等於已下載 JWKS，公鑰會在驗 Token 需要時取得。
 
 ### 3.2 環境變數
 
@@ -88,8 +87,6 @@ uvicorn.run(create_app(Config.from_env(lab)), host=host, port=int(port), access_
 | `SIGNET_ISSUER` | 空字串 | Labs 02–05 的 issuer；Lab 06 比對 Gateway issuer |
 | `READ_SCOPE` | `notes:read` | Labs 03–06 每個 `/mcp` 請求必需 |
 | `WRITE_SCOPE` | `notes:write` | Labs 04–06 的 `create_note` 額外必需 |
-| `INTROSPECTION_CLIENT_ID` | 空字串 | Lab 05 confidential Client ID |
-| `INTROSPECTION_CLIENT_SECRET` | 空字串 | Lab 05 confidential Client secret |
 | `GATEWAY_SHARED_SECRET` | 空字串 | Lab 06 至少 32 字元的 Gateway 信任憑證 |
 | `ALLOW_INSECURE_ISSUER` | 未啟用 | `1` 代表允許本機 HTTP issuer／endpoint 測試替身 |
 
@@ -160,8 +157,7 @@ flowchart TD
     Origin --> Route[health / PRM / path 分派]
     Route --> MCP["/mcp：拒絕 query Token"]
     MCP --> Caller[依 Lab：匿名、固定拒絕、JWT 或 Gateway]
-    Caller --> Active[Lab 05：introspection]
-    Active --> Read[Lab 03–06：讀取 scope]
+    Caller --> Read[Lab 03–06：讀取 scope]
     Read --> Body[Lab 04–06 POST：讀 body、限制大小、寫入 scope]
     Body --> Replay[重播 body 給 SDK]
     Replay --> Context[設定 ContextVar 身分]
@@ -201,15 +197,11 @@ Labs 03–05 要求 Authorization 能拆成兩個欄位，且第一個為 Bearer
 
 Labs 03–05 的身分來自 JWT，不採用外部提供的 `X-MCP-Subject`。驗證成功會回傳包含 subject、scope、audience、token ID 的 dict。
 
-### 5.4 Introspection：`Authorization.active(raw)`
+### 5.4 Lab 05：public Client 撤銷與離線驗證
 
-Lab 05 在 JWT 通過後、scope 檢查之前，用 `httpx.AsyncClient(timeout=5, follow_redirects=False)` POST Token 與 `token_type_hint=access_token`。confidential Client ID／secret 經 `quote_plus` 後作為 HTTP Basic 憑證。
+Lab 05 的必做操作是由參考 Client 帶 `client_id` 撤銷 access token，不需 secret 或啟動 Server。保留的 Server 入口沿用 Lab 04 的 JWT、scope 與資料權限檢查，不查詢 introspection，也不要求額外憑證。
 
-introspection 只讀取 `active`，要求它是 Python `bool`，而不是任意 truthy 值。因此缺少、null、字串或數字都不會當作有效布林值。已處理的 HTTP／JSON／值錯誤回 503；`active: false` 回 401；`true` 才繼續。
-
-subject、scope 等身分仍來自已驗證的 JWT，所以回應只有 `{"active": true}` 也足夠。此處每次建立 AsyncClient 並發出請求，沒有成功快取或跨請求共用的連線池。
-
-此設計讓下一次請求能看到撤銷結果，但同時增加網路往返與上游可用性依賴。Labs 03–04 僅做本地 JWT 檢查，不會即時知道 Token 已被撤銷。
+撤銷不會改變 JWT 簽章。尚未到期、其他檢查也通過的 Token，撤銷後仍可能被離線驗證接受；不能把撤銷 API 回 200 當作 MCP 已立即拒絕的證據。
 
 ### 5.5 Scope、body 上限與 `replay()`
 
@@ -356,7 +348,7 @@ Client 使用常數 `PROTOCOL_VERSION = "2026-07-28"`，目前直接送 `tools/c
   --token-file .tokens/python-guide.json --tool list_notes
 ```
 
-觀察撤銷時，先備妥 introspection 憑證並改啟動 Lab 05，確認同一顆 Token 仍可呼叫，再執行：
+觀察撤銷時，沿用登入時的 public Client ID，不需額外憑證，執行：
 
 ```bash
 ./scripts/oauth.sh python revoke --token-file .tokens/python-guide.json
@@ -364,7 +356,7 @@ Client 使用常數 `PROTOCOL_VERSION = "2026-07-28"`，目前直接送 `tools/c
   --token-file .tokens/python-guide.json --tool whoami
 ```
 
-最後一次預期 HTTP 401 與非零 exit code。重啟 Server 會清空筆記，但不會刪除本機 Token。
+最後一次在 Token 尚未到期且其他檢查通過時仍會成功，展示離線驗證的限制。重啟 Server 會清空筆記，但不會刪除本機 Token。
 
 ## 8. Lab 06：容器與 Gateway 邊界
 
@@ -389,16 +381,16 @@ backend 不再驗證 Bearer Token，也不執行 introspection。私有網路、
 
 | 現象 | 排查位置／含意 |
 | --- | --- |
-| 啟動例外 | `Config.from_env`、`create_app`、`Authorization.__init__`；檢查 URL、Discovery、Lab 05 憑證與 Lab 06 secret |
+| 啟動例外 | `Config.from_env`、`create_app`、`Authorization.__init__`；檢查 URL、Discovery、Lab 06 secret |
 | 400 `token_in_query_forbidden` | `/mcp` query 出現 `access_token` |
-| 401 `invalid_token` | Lab 02 固定拒絕；或 Bearer／JWT／撤銷狀態不符 |
+| 401 `invalid_token` | Lab 02 固定拒絕；或 Bearer／JWT 不符 |
 | 401 `untrusted_gateway` | shared secret 未通過 |
 | 401 `invalid_gateway_identity` | subject、issuer 或 audience 不符 |
 | 403 `untrusted_origin` | 自訂 middleware 的 Origin 不符 |
 | 403 `insufficient_scope` | 缺少 read／write scope，查看 challenge |
 | 413 `request_too_large` | Labs 04–06 POST body 超過 1 MiB |
 | 421 | SDK transport security 拒絕 Host |
-| 503 `temporarily_unavailable` | JWKS 連線錯誤，或 Lab 05 已捕捉的 introspection 錯誤 |
+| 503 `temporarily_unavailable` | JWKS 連線錯誤 |
 | HTTP 200 但 CLI 失敗 | JSON-RPC error、工具 `isError` 或不符合 Client 預期的 result |
 | CLI `token resource differs` | 尚未送出請求，檔案 resource 與目標不符 |
 | CLI `token file already exists` | 登入防覆寫，改用新檔名 |
@@ -416,7 +408,7 @@ Python 的主要驗證在 [tests/test_labs.py](../tests/test_labs.py)，並非 `
 | Lab 03 | 無 Token、過期／缺少 exp、錯誤 issuer／audience／type／subject、偽造簽章、audience 字串／陣列 |
 | HTTP 邊界 | query Token、惡意 Origin、偽造 subject header |
 | Lab 04 | write scope、Alice／Bob 筆記隔離、A／B audience 隔離 |
-| Lab 05 | active、撤銷後 401、上游不可用時 503 |
+| Lab 05 | 無額外憑證的啟動、JWT／scope 驗證與撤銷後的離線驗證限制 |
 | Lab 06 | 缺少 shared secret、可信身分、寫入權限、錯誤 audience |
 | Client lifecycle | PKCE、錯誤 state、resource 綁定、檔案權限、call／revoke／重試 |
 | Client errors | 不安全目的地、非本機 cross-resource、HTTP 200 的 JSON-RPC error |

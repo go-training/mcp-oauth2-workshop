@@ -48,7 +48,6 @@ chmod 600 .env
 | ------------------------ | ---------------------------------------------------------------------------------------------------- |
 | `SIGNET_ISSUER`          | **保持預設** `https://signet.wu-boy.com`（結尾不要加斜線）                                           |
 | `OAUTH_CLIENT_ID`        | 填入你自己的 Client App ID（Lab 01 建立並確認 active 後取得）；設定尚未完成時可先用講師提供的備援 ID |
-| `INTROSPECTION_CLIENT_*` | 主課留空；課後選修 Lab 05 才需另行取得憑證                                                           |
 | `GATEWAY_SHARED_SECRET`  | 先留空，Lab 06 才使用                                                                                |
 
 > **每開一個新終端都要重新載入 `.env`**，否則 Lab 會讀不到設定：
@@ -107,7 +106,7 @@ uv sync --project python --frozen
 
 主課實作共 80 分鐘，另留 5 分鐘排錯緩衝與最後 5 分鐘 Q&A。
 
-課後進階選修：[Lab 05：撤銷同一顆 Token](labs/05/README.md)，練習撤銷與 introspection，需另備 confidential Client 憑證，不列入主課驗收。
+課後進階選修：[Lab 05：撤銷同一顆 Token](labs/05/README.md)，沿用既有 public Client 練習撤銷，不需 secret 或額外 App，不列入主課驗收。
 
 課堂只需提醒：Token 撤銷後，本地驗 JWT 的 Server 不一定立即知道；需要即時撤銷時，再進一步研究 introspection。
 
@@ -173,8 +172,8 @@ Server 提供三個工具：`whoami`、`list_notes`、`create_note`。筆記只�
 - Lab 01 刻意沒有授權；Lab 02 刻意只回 discovery challenge、尚不接受 Token。這兩關是明確的教學中間狀態，不是 bug。
 - Labs 03–05 使用 RS256 + JWKS，這是本教材的選擇，MCP 規範並未強制使用 JWT。所有受保護關卡從一開始就驗證 audience。
 - Signet access token 必須是 `type=access`，refresh token 或 ID token 不能呼叫 MCP。
-- 課後選修 Lab 05 在本地驗證 JWT 後，每次請求再查 introspection 的 `active`，不快取成功結果；introspection 服務不可用時拒絕放行並回 503。
-- Lab 06 的 Kong plugin 是離線 JWT 驗證，**不具備 Lab 05 的即時撤銷保證**。實務上需決定在哪一層提供撤銷檢查，Gateway 不會自動解決所有授權問題。
+- 課後選修 Lab 05 以 public Client ID 撤銷 access token；Server 入口沿用 Lab 04 的離線 JWT 與 scope 檢查，不查詢 introspection。
+- Lab 06 的 Kong plugin 是離線 JWT 驗證，**不保證即時得知撤銷狀態**。實務上需決定在哪一層提供撤銷檢查，Gateway 不會自動解決所有授權問題。
 - `notes:read` 控制入口，`notes:write` 控制寫入工具；MCP Server 始終保留工具與資料的業務權限。
 - 本機範例僅允許 loopback HTTP，遠端 issuer 一律 HTTPS。`ALLOW_INSECURE_ISSUER=1` 只供本機測試 fixture，不能用來跳過遠端 TLS。
 - Device Flow 列為後續延伸主題，不在主課內。
@@ -193,7 +192,7 @@ Server 提供三個工具：`whoami`、`list_notes`、`create_note`。筆記只�
 ./scripts/check.sh
 ```
 
-它會啟動 Go / Python 的六個 Lab 與本機測試用 issuer，涵蓋協定呼叫、PKCE、錯誤 Token、scope、audience、使用者隔離、撤銷與 Gateway 信任邊界。
+它會啟動 Go / Python 的六個 Lab 與本機測試用 issuer，涵蓋協定呼叫、PKCE、錯誤 Token、scope、audience、使用者隔離、public Client 撤銷及離線驗證限制與 Gateway 信任邊界。
 
 GitHub Actions 在 push、pull request 或手動執行時，會分別跑 Go 格式檢查、`go vet` 與 `go test -race`，以及 Python lint、pytest 和兩種 Compose profile 驗證。pytest 會同時測試 Go / Python，因此測試環境需要兩種語言。
 

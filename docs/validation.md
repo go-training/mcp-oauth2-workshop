@@ -2,9 +2,28 @@
 
 教材基準：MCP Authorization **2026-07-28**。本頁區分已執行的本機驗證與尚待現場服務的彩排，不將 mock 當作 Signet。
 
+## 2026-10-11：Lab 05 簡化為 public Client 撤銷（目前版本）
+
+Lab 05 已移除 introspection 與額外 confidential Client 憑證需求。必做流程改為 public Client 登入、撤銷與重複撤銷；Server 入口保留為選做，沿用 Lab 04 的離線 JWT／scope 檢查，不再以撤銷後立即回 401 驗收。
+
+本次真實 Signet 介面顯示版本 `v1.7.0-2-g7e68fb5`，issuer 為 `https://signet.wu-boy.com`。
+
+| 驗證 | Go | Python |
+| --- | --- | --- |
+| 本次對話中新取得的 `notes:read` Token：PKCE 登入與 public Client 撤銷，不帶 secret | 通過 | 通過 |
+| 修改後重複撤銷上述測試 Token，檔案內容保持不變 | 通過 | 通過 |
+| 修改後使用真實 Signet 啟動 Lab 05，兩個 introspection 環境變數皆空白 | 通過 | 通過 |
+| 啟動後 health 200、匿名 MCP 請求 401 | 通過 | 通過 |
+
+本機 `./scripts/check.sh` 通過 Go 格式／vet／tests、Ruff lint／format 與 pytest：**33 passed in 17.58s**。測試 issuer 不提供 introspection endpoint；測試確認 Lab 05 仍拒絕匿名、過期、錯 audience 與缺少 write scope 的請求，並驗證 public Client 撤銷、重複撤銷與離線 Server 仍接受尚有效 JWT 的限制。
+
+真實服務這輪未重跑選做的「MCP 呼叫 → 撤銷 → 再呼叫」；此限制的回歸證據來自本機測試，不冒充真實服務驗收。測試 Server 已停止，未修改本機 `.env`，未輸出 raw token。
+
+以下保留歷史紀錄；其中要求 introspection 憑證、期待撤銷後 401 或 503 的 Lab 05 描述，只適用於當時的舊版教材，不是目前的設定或驗收條件。
+
 ## 2026-10-11：新版 Signet 重跑與教材修正
 
-**本節是目前最新結果；以下 2026-10-10 內容完整保留為歷史紀錄，其中「尚未完成」與「最新結果」只代表當時狀態。不能宣稱六關所有現場項目全部通過：Lab 05 仍缺 confidential introspection 憑證。**
+**本節為先前版本的歷史紀錄，保留當時結果；Lab 05 的目前流程與驗收請以上一節為準。當時未完成的其他現場項目仍需分別驗收。**
 
 環境：Signet `v1.6.0-2-gc4d3d86`、本機 Go 1.26.7、Python 3.12.13、Claude Code 2.1.263、Codex 0.162.1、Docker 29.2.1、Compose 5.1.4。真實 issuer 為 `https://signet.wu-boy.com`。
 

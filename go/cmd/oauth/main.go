@@ -281,7 +281,7 @@ func main() {
 						if resp.StatusCode != 200 {
 							e = fmt.Errorf("revocation HTTP %d", resp.StatusCode)
 						} else {
-							fmt.Println("Revocation accepted. Keep file to test SAME token again.")
+							fmt.Println("Revocation accepted. Offline JWT verification may still accept this token until expiry.")
 						}
 					}
 				}

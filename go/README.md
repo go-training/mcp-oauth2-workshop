@@ -9,7 +9,7 @@ Go 版本包含兩個可執行程式：MCP Resource Server，以及示範登入�
 | 檔案 | 職責 |
 | --- | --- |
 | [labs/01/main.go](labs/01/main.go) 至 [labs/06/main.go](labs/06/main.go) | 六個啟動入口，分別呼叫 `workshop.Run(1)` 至 `workshop.Run(6)` |
-| [internal/workshop/server.go](internal/workshop/server.go) | 共用設定、Discovery、MCP 工具、HTTP 路由、JWT／scope／撤銷／Gateway 檢查 |
+| [internal/workshop/server.go](internal/workshop/server.go) | 共用設定、Discovery、MCP 工具、HTTP 路由、JWT／scope／Gateway 檢查 |
 | [cmd/oauth/main.go](cmd/oauth/main.go) | public Client：`login`、`call`、`revoke`、`metadata` |
 | [internal/workshop/server_test.go](internal/workshop/server_test.go) | Go 單元測試：URL 限制與 HTTP 邊界 |
 | [go.mod](go.mod)、[go.sum](go.sum) | 模組版本與依賴校驗資訊 |
@@ -28,7 +28,6 @@ flowchart LR
     Client[Go OAuth Client / AI CLI] -->|PKCE 換 Token| Signet
     Client -->|Bearer Token：Lab 03–05| Server[Go MCP Server]
     Server -->|Discovery / JWKS：Lab 03–05| Signet
-    Server -->|Introspection：僅 Lab 05| Signet
     Client -->|Bearer Token：Lab 06| Kong[Kong Gateway]
     Kong -->|受信任身分 Headers| Backend[Go Lab 06 backend]
     Server --> Notes[程序記憶體中的個人筆記]
@@ -51,10 +50,10 @@ Client App 的 Allowed Resources 應填可複製的完整 resource URL，例如 
 | [02](../labs/02/README.md) | 不建立已登入身分 | `/mcp` 固定回 401，即使傳入有效 Token | 觀察 challenge 與 Protected Resource Metadata |
 | [03](../labs/03/README.md) | JWT claims | JWT 簽章與 claims、讀取 scope | 建立可信身分；此階段 `create_note` 尚不要求寫入 scope |
 | [04](../labs/04/README.md) | JWT claims | Lab 03 加上 `create_note` 寫入 scope | scope、使用者資料與 resource audience 隔離 |
-| [05（課後選修）](../labs/05/README.md) | JWT claims | Lab 04 加上每次請求的 introspection | 同一顆 Token 撤銷後立即被下一次檢查拒絕 |
+| [05（課後選修）](../labs/05/README.md) | JWT claims | 沿用 Lab 04 的離線 JWT 與 scope 檢查 | Public Client 撤銷成功；離線驗證不保證立即拒絕 |
 | [06](../labs/06/README.md) | Gateway headers | Gateway secret、issuer、audience、subject、讀／寫 scope | 授權入口移到 Gateway，backend 仍執行業務權限檢查 |
 
-這不是逐關貼上程式的流程。每關都可獨立啟動，切換 Lab 就會建立新的 `app` 和筆記 map。Lab 06 也不是在 Lab 05 上再加 Gateway：Go backend 不再執行 JWT 驗證或 introspection。
+這不是逐關貼上程式的流程。每關都可獨立啟動，切換 Lab 就會建立新的 `app` 和筆記 map。Lab 06 也不是在 Lab 05 上再加 Gateway：Go backend 不再執行 JWT 驗證。
 
 ## 4. 啟動流程與設定
 
@@ -65,7 +64,7 @@ Client App 的 Allowed Resources 應填可複製的完整 resource URL，例如 
 1. `LoadConfig(lab)` 從環境變數組成 `Config`。
 2. 建立 context，交給 `NewHandler` 與 JWKS 元件使用。
 3. `NewHandler` 驗證 Lab 編號、resource 與該關必需的設定。
-4. Labs 03–05 執行 issuer Discovery，取得 `jwks_uri`，建立 `keyfunc.NewDefaultCtx`；Lab 05 另外要求 introspection endpoint 與 confidential Client 憑證。
+4. Labs 03–05 執行 issuer Discovery，取得 `jwks_uri`，建立 `keyfunc.NewDefaultCtx`。
 5. 建立 MCP Server、註冊三個工具、組合 HTTP 路由與 middleware。
 6. `Run` 建立 `http.Server` 並呼叫 `ListenAndServe()`。設定錯誤或 Server 停止會記錄錯誤並以 exit code 1 結束。
 
@@ -80,8 +79,6 @@ HTTP timeout 為讀 header 5 秒、讀取 15 秒、寫入 30 秒、idle 60 秒�
 | `SIGNET_ISSUER` | 無 | Labs 02–05 的 issuer；Lab 06 比對 Gateway 的 issuer header |
 | `READ_SCOPE` | `notes:read` | Labs 03–06 每個 `/mcp` 請求必需的 scope |
 | `WRITE_SCOPE` | `notes:write` | Labs 04–06 呼叫 `create_note` 額外必需的 scope |
-| `INTROSPECTION_CLIENT_ID` | 無 | Lab 05 的 confidential Client ID |
-| `INTROSPECTION_CLIENT_SECRET` | 無 | Lab 05 introspection 的 Client secret |
 | `GATEWAY_SHARED_SECRET` | 無 | Lab 06 至少 32 字元的 Gateway 信任憑證 |
 | `ALLOW_INSECURE_ISSUER` | 未啟用 | 設成 `1` 才允許本機 HTTP issuer／endpoint 測試替身 |
 
@@ -120,7 +117,7 @@ set +a
 
 回傳資料中的 `jwks_uri`、authorization、token、revocation、introspection endpoint 若為字串，都會經過 `TrustedURL`。各使用端再檢查自身需要的欄位；這裡沒有實作完整 metadata schema 驗證。
 
-Discovery 與 introspection 使用共用的 5 秒 HTTP Client，且不跟隨 redirect。`readJSON` 要求 HTTP 200、關閉 body，最多讀取 1 MiB 供 JSON decoder 使用。JWKS 的取得與更新交由 `keyfunc` 套件管理，不要把這個 HTTP Client 的設定誤當成 JWKS 套件的設定。
+Discovery 使用 5 秒 HTTP Client，且不跟隨 redirect。`readJSON` 要求 HTTP 200、關閉 body，最多讀取 1 MiB 供 JSON decoder 使用。JWKS 的取得與更新交由 `keyfunc` 套件管理，不要把這個 HTTP Client 的設定誤當成 JWKS 套件的設定。
 
 ### 5.3 Protected Resource Metadata（PRM）
 
@@ -144,8 +141,7 @@ flowchart TD
     Route --> MCP["/mcp：authorize"]
     MCP --> Query[拒絕 query 中的 access_token]
     Query --> Identity[依 Lab 建立身分：匿名、JWT 或 Gateway]
-    Identity --> Active[Lab 05：introspection]
-    Active --> Read[Lab 03–06：讀取 scope]
+    Identity --> Read[Lab 03–06：讀取 scope]
     Read --> Write[Lab 04–06：POST 大小與 create_note 寫入 scope]
     Write --> Context[身分寫入 request context]
     Context --> SDK[MCP SDK 分派工具]
@@ -186,17 +182,11 @@ Labs 04–06 的 POST 請求會先以 `http.MaxBytesReader` 讀取最多 1 MiB �
 
 讀過的 body 會重新放回 `r.Body`，讓 SDK 能再次解析。JSON 解析不成功時，此層不判斷工具名稱，交給 SDK 處理。`create_note` handler 內仍會再次檢查寫入 scope，確保業務操作自身也有權限邊界。
 
-### 6.4 撤銷：`active(ctx, raw)`
+### 6.4 Lab 05：public Client 撤銷與離線驗證
 
-Lab 05 在 JWT 驗證成功後、scope 檢查之前，每次都向 introspection endpoint POST `token` 與 `token_type_hint=access_token`。Client ID／secret 經 form escaping 後放入 HTTP Basic；這組 confidential Client 憑證不同於登入用的 public Client ID。
+Lab 05 的必做操作是由參考 Client 帶 `client_id` 撤銷 access token，不需 secret 或啟動 Server。保留的 Server 入口沿用 Lab 04 的 JWT、scope 與資料權限檢查，不查詢 introspection，也不要求額外憑證。
 
-Server 只使用 introspection 的 `active` 布林值。身分與 scope 仍來自已驗證的 JWT，所以即使回應只有 `{"active": true}`，也能正常處理。`*bool` 讓程式能區分「確實為 false」和「欄位缺漏／null」。
-
-- `active: true`：繼續後面的 scope 與工具檢查。
-- `active: false`：401 `invalid_token`。
-- timeout、非 200、JSON 錯誤或缺少布林值：503 `temporarily_unavailable`，不放行。
-
-此處沒有成功快取；代價是每個通過 JWT 的請求都需要額外網路往返，且服務可用性依賴 introspection。Labs 03–04 不查撤銷狀態，Token 被撤銷後也可能繼續通過本地 JWT 檢查直到過期。
+撤銷不會改變 JWT 簽章。尚未到期、其他檢查也通過的 Token，撤銷後仍可能被離線驗證接受；不能把撤銷 API 回 200 當作 MCP 已立即拒絕的證據。
 
 ### 6.5 Context 與日誌
 
@@ -300,13 +290,13 @@ Token 檔只包含 `access_token`、`issuer`、`resource`，不保存 refresh To
 
 `metadata` 直接呼叫 `Discover`，將 issuer metadata 印成 JSON，方便排查端點設定。
 
-`revoke` 讀取 Token 檔，先比對檔案 issuer 與目前設定，再透過 Discovery 找到 revocation endpoint，POST access Token 與 token type hint。此範例不傳 Client secret，要求回應 HTTP 200，但不解析 response body。
+`revoke` 讀取 Token 檔，先比對檔案 issuer 與目前設定，再透過 Discovery 找到 revocation endpoint，POST public `client_id`、access Token 與 token type hint。此範例不傳 Client secret，要求回應 HTTP 200，但不解析 response body。
 
 撤銷成功後刻意保留檔案，方便用**同一顆 Token** 重試 Lab 05。撤銷不代表刪除本機檔案，也不代表所有只做離線 JWT 驗證的 Server 都會即時拒絕它。
 
 ### 8.5 用指令對照程式
 
-以下在 repo 根目錄執行，先完成 App 設定並載入 `.env`。另一個終端需已啟動 Lab 04；執行撤銷觀察時改用 Lab 05，並先備妥 introspection 憑證。Token 檔名需尚未存在：
+以下在 repo 根目錄執行，先完成 App 設定並載入 `.env`。另一個終端需已啟動 Lab 04；撤銷操作沿用同一個 public Client ID，不需額外憑證。Token 檔名需尚未存在：
 
 ```bash
 ./scripts/oauth.sh go metadata
@@ -328,7 +318,7 @@ Lab 05 的撤銷前後對照：
   --token-file .tokens/go-guide.json --tool whoami
 ```
 
-最後一次預期為 401 並以非零狀態結束。切換 Server 會清空筆記，但不會自行刪除 Token 檔。
+最後一次在 Token 尚未到期且其他檢查通過時仍會成功，展示離線驗證的限制。切換 Server 會清空筆記，但不會自行刪除 Token 檔。
 
 ## 9. Lab 06：Gateway 與 Go backend 的信任邊界
 
@@ -345,21 +335,20 @@ Go backend 的 `authorize` 在 Lab 06 執行：
 3. 要求 subject 非空，`X-MCP-Issuer` 等於設定，audience header 等於 resource。
 4. 繼續檢查讀取 scope、POST 大小及 `create_note` 寫入 scope。
 
-backend 不會再驗證原始 Bearer Token，因此私有網路、secret 保密與 Gateway 產生可信身分 headers 都是此架構的一部分。只偽造 `X-MCP-Subject` 不會通過；若能取得 shared secret 並直接連線 backend，就能構造它信任的身分 headers。現有 Lab 06 backend 也沒有 Lab 05 的即時撤銷檢查。
+backend 不會再驗證原始 Bearer Token，因此私有網路、secret 保密與 Gateway 產生可信身分 headers 都是此架構的一部分。只偽造 `X-MCP-Subject` 不會通過；若能取得 shared secret 並直接連線 backend，就能構造它信任的身分 headers。Lab 05 與 Lab 06 都不查詢撤銷狀態。
 
 ## 10. 錯誤要在哪一層追查
 
 | 現象 | 原始碼位置／意義 |
 | --- | --- |
-| 啟動即 `configuration failed` | `NewHandler`：resource、issuer、JWKS、Lab 05 憑證或 Lab 06 secret 不符 |
+| 啟動即 `configuration failed` | `NewHandler`：resource、issuer、JWKS或 Lab 06 secret 不符 |
 | 400 `token_in_query_forbidden` | `authorize`：URL query 含 `access_token` |
-| 401 `invalid_token` | Lab 02 固定拒絕；或 Labs 03–05 header／JWT／撤銷狀態不符 |
+| 401 `invalid_token` | Lab 02 固定拒絕；或 Labs 03–05 header／JWT 不符 |
 | 401 `untrusted_gateway` | Lab 06 的 shared secret 未通過 |
 | 401 `invalid_gateway_identity` | Lab 06 subject、issuer 或 audience 不符 |
 | 403 `untrusted_origin` | 最外層 Origin 檢查；此回應不走 `reject` 的 Bearer challenge |
 | 403 `insufficient_scope` | 缺少讀取或寫入 scope；查看 `WWW-Authenticate` |
 | 413 `request_too_large` | Labs 04–06 POST body 讀取失敗或超過限制 |
-| 503 `temporarily_unavailable` | Lab 05 introspection 無法得到有效結果，不是明確的撤銷判定 |
 | HTTP 200 但工具失敗 | SDK／工具層錯誤，例如內容長度不符、筆記上限；檢查 JSON-RPC error 或 `isError` |
 | CLI `different resource` | Client 還未送出請求，Token 檔記錄的 resource 與目的地不符 |
 | CLI `token file exists` | `login` 防覆寫；改用新的 Token 檔名 |
@@ -398,7 +387,7 @@ gofmt -l .
 | Lab 03 tokens | 缺少 Token、過期／缺少 exp、錯誤 issuer／audience／type／subject、偽造簽章與 audience 兩種形狀 |
 | Lab 03 boundaries | query Token、Origin 與偽造 subject header |
 | Lab 04 isolation | 寫入 scope、Alice／Bob 個人筆記隔離、A／B audience 隔離 |
-| Lab 05 revocation | active、撤銷後 401、introspection 中斷後 503 |
+| Lab 05 revocation | 無額外憑證的啟動、JWT／scope 驗證與撤銷後的離線驗證限制 |
 | Lab 06 boundary | 缺少 Gateway secret、有效 Gateway 身分、寫入 scope、錯誤 audience |
 | Client lifecycle | PKCE、錯誤 callback state、resource 綁定、Token 檔權限、call／revoke／重試 |
 | Client errors | 不安全目的地、非本機 cross-resource、HTTP 200 內的 JSON-RPC error |

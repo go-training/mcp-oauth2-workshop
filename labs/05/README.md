@@ -1,10 +1,20 @@
-# Lab 05：撤銷同一顆 Token（課後進階選修）
+# Lab 05：用 public Client 撤銷 Token（課後選修）
 
-[課程首頁](../../README.md) · [Go 入口](../../go/labs/05/main.go) · [Python 入口](../../python/labs/05/main.py)
+[課程首頁](../../README.md) · [Go 參考 Client](../../go/cmd/oauth/main.go) · [Python 參考 Client](../../python/workshop/oauth.py)
 
-完整實作：[Go](../../go/internal/workshop/server.go) / [Python](../../python/workshop/server.py)。每關都可直接執行，不需從上一關複製程式。
+本關不列入 90 分鐘主課。主課完成 Lab 04 後，直接前往 [Lab 06](../06/README.md)。
 
-所有指令從 repo 根目錄執行。每個終端先選語言並載入設定：
+## 練習目標
+
+**沿用既有 public Client App，登入取得 Token，再撤銷它；不需申請另一個 App，也不需 Client secret。** 本關直接操作 Signet，不需要啟動 MCP Server。
+
+Public Client 的撤銷請求包含 `client_id` 與要撤銷的 Token。Signet 會確認 Token 屬於提出請求的 Client。`INTROSPECTION_CLIENT_ID`、`INTROSPECTION_CLIENT_SECRET` 均不需要設定；本關不使用 introspection。
+
+## 操作：登入，再撤銷
+
+### 1. 載入既有設定
+
+所有指令從 repo 根目錄執行，Go 或 Python 選一種即可。沿用先前 Lab 的 `.env` 與 `OAUTH_CLIENT_ID`：
 
 ```bash
 export LAB_LANGUAGE=go  # 或 python
@@ -13,49 +23,78 @@ source .env
 set +a
 ```
 
-本關不列入 90 分鐘主課與主課驗收。主課完成 Lab 04 後，直接前往 [Lab 06](../06/README.md)。本關保留完整程式與操作，供課後研究 Token 撤銷及 introspection。
+自己的 App 應已允許 `notes:read`、resource `http://localhost:8000/mcp`，以及 callback `http://127.0.0.1:8765/callback`。
 
-## 操作
-
-先停止 Lab 04 的 A/B Server。終端 A 啟動本關，終端 B 依序執行登入、呼叫、撤銷、再次呼叫。
-
-課後操作前，先向講師另行取得該組專用 confidential Client 的 introspection 憑證；放入 `.env` 的 `INTROSPECTION_CLIENT_ID` / `INTROSPECTION_CLIENT_SECRET` 並重新載入。這不是 Claude Code／Codex 的 public Client，也不是 Signet 管理員密碼。
-
-載入後先確認兩項都有值，不要用 `echo` 印出 secret：
+### 2. 取得一顆新的 Token
 
 ```bash
-test -n "$INTROSPECTION_CLIENT_ID" && test -n "$INTROSPECTION_CLIENT_SECRET" && echo 'introspection 設定已填入'
+./scripts/oauth.sh "$LAB_LANGUAGE" login --resource http://localhost:8000/mcp --scopes notes:read --token-file .tokens/lab05.json
 ```
 
-沒有顯示確認文字就先補設定；public Client ID 不能代替這一組憑證。
+完成瀏覽器登入與同意授權後，終端應顯示 Token 已儲存。若檔案已存在，請換一個未使用的檔名，後續指令也使用相同路徑。不要輸出或分享 Token 內容。
+
+### 3. 撤銷剛取得的 Token
+
+```bash
+./scripts/oauth.sh "$LAB_LANGUAGE" revoke --token-file .tokens/lab05.json
+```
+
+**預期：** 顯示 `Revocation accepted`，表示 Signet 的撤銷端點回應 HTTP 200。
+
+參考 Client 會從 metadata 找到撤銷端點，以 form 傳送 `client_id`、`token` 與 `token_type_hint=access_token`。`client_id` 來自 `OAUTH_CLIENT_ID`；若登入時用 `--client-id` 指定其他 ID，撤銷時也必須指定相同 ID。不需傳送 secret。
+
+本指令撤銷的是 Token 檔案中的 **access token**。若手動撤銷 refresh token，應送出該 refresh token，並改用 `token_type_hint=refresh_token`；不能只改 hint 而仍傳入 access token。
+
+### 4. 再撤銷一次，觀察回應
+
+```bash
+./scripts/oauth.sh "$LAB_LANGUAGE" revoke --token-file .tokens/lab05.json
+```
+
+**預期：** 仍顯示 `Revocation accepted`。依 [RFC 7009](https://www.rfc-editor.org/rfc/rfc7009.html#section-2.2)，成功撤銷、未知或已撤銷的 Token 都可能回 200；Signet 仍會先檢查 Client。
+
+**檢查點：** 撤銷不會刪除本機 Token 檔案，API 回 200 也不代表每個 MCP Server 已立即拒絕它。
+
+## 為什麼撤銷後，MCP 不一定立刻回 401？
+
+本教材的 Lab 03–05 Server 與 Lab 06 Gateway 都使用離線 JWT 驗證。撤銷不會改變 Token 原本的簽章，所以尚未到期、也符合其他檢查的 Token，仍可能通過。
+
+**本關驗收撤銷請求成功，不要求撤銷後呼叫 MCP 立即回 401。** 若系統需要即時拒絕，必須另外設計狀態查詢或其他撤銷傳播機制，這不在本關實作範圍。
+
+### 選做：觀察離線驗證的限制
+
+想親眼觀察時，先停止其他使用 8000 port 的 Server，在終端 A 選好語言並載入 `.env`，啟動保留的 Lab 05 Server 入口：
 
 ```bash
 ./scripts/lab.sh 05 "$LAB_LANGUAGE"
 ```
 
-另一個終端：
+它沿用 Lab 04 的 JWT、scope 與資料權限檢查，不查詢 introspection，也不需要額外憑證。終端 B 載入相同設定，使用另一個未使用的 Token 檔名：
 
 ```bash
-./scripts/oauth.sh "$LAB_LANGUAGE" login --scopes notes:read --token-file .tokens/lab05.json
-./scripts/oauth.sh "$LAB_LANGUAGE" call --token-file .tokens/lab05.json
-./scripts/oauth.sh "$LAB_LANGUAGE" revoke --token-file .tokens/lab05.json
-./scripts/oauth.sh "$LAB_LANGUAGE" call --token-file .tokens/lab05.json
+./scripts/oauth.sh "$LAB_LANGUAGE" login --resource http://localhost:8000/mcp --scopes notes:read --token-file .tokens/lab05-offline.json
+./scripts/oauth.sh "$LAB_LANGUAGE" call --resource http://localhost:8000/mcp --token-file .tokens/lab05-offline.json
+./scripts/oauth.sh "$LAB_LANGUAGE" revoke --token-file .tokens/lab05-offline.json
+./scripts/oauth.sh "$LAB_LANGUAGE" call --resource http://localhost:8000/mcp --token-file .tokens/lab05-offline.json
 ```
 
-`revoke` 使用登入時的 public Client ID（`OAUTH_CLIENT_ID`，亦可用 `--client-id` 指定），以 form 傳送 `client_id`、`token` 與 `token_type_hint=access_token`，不需要 Client secret。Signet 須確認 Token 屬於提出撤銷請求的 Client。這與 Server 查詢 introspection 時使用的 confidential Client 憑證是兩回事。
+撤銷前後使用同一顆 Token。只要尚未到期且其他檢查仍通過，最後一次 call 預期仍成功；這展示 Server 沒有查詢撤銷狀態，不能據此判定撤銷 API 失效。這是刻意的教學測試，實際 Client 撤銷後應停止使用該 Token。
 
-本關刻意撤銷 access token，以驗證同一顆 Token 的拒絕結果；若手動撤銷 refresh token，應改送該 Token 並使用 `token_type_hint=refresh_token`。
+## 卡住時先檢查
 
-第一次 call 應回 200；revoke 應顯示 `Revocation accepted`。最後一次必須回 401，而且使用的是**同一個檔案、同一顆 Token**。不要用會自動重新登入／更新 Token 的 AI CLI 作為唯一撤銷證據。
+| 現象 | 處理方式 |
+| --- | --- |
+| 登入失敗 | 檢查 public App 是否啟用、scope／resource／callback 是否正確 |
+| Token 檔案已存在 | 改用新檔名，後續指令沿用相同路徑 |
+| revoke 提示缺少 Client ID | 重新載入 `.env`，確認 `OAUTH_CLIENT_ID` 有值 |
+| revoke 被拒絕 | 確認 Client ID 與取得 Token 時一致，且 App 仍有效 |
+| 舊版 Server 要求 introspection 憑證 | 更新教材程式；目前版本已移除此需求 |
+| 選做的 call 回 401 | 檢查 Token 是否過期、resource 是否一致；不能只看 401 就認定是撤銷生效 |
 
-## 觀察與練習
+## 驗收與結束
 
-- Go：`active`；Python：`Authorization.active`。先完整驗證 JWT，再向 Signet introspection 查詢 `active`。
-- Introspection 回應不一定包含完整 claims；教材只讀取 `active`，身分、scope、audience 仍來自已驗證 JWT。
-- 此範例不快取 active 結果。Signet 逾時、回錯誤或 malformed response 時回 503，不能降級為放行。
-- 對照 Lab 03：同一顆已撤銷但未到期的 Token，離線驗簽仍可能接受，因為 RSA 簽章沒有失效。
-- 日誌顯示允許請求的 subject／jti，以及拒絕原因，沒有 raw token。講師若需要展示管理介面的事件紀錄，應另外彩排並確認網站實際顯示的內容。
+- [ ] 使用既有 public Client App 完成登入與撤銷，不需 secret 或另一個 App。
+- [ ] 第一次與重複撤銷都得到 `Revocation accepted`。
+- [ ] 能說明「Signet 接受撤銷」與「MCP Server 立即拒絕」是兩件事。
 
-## 驗收
-
-有效 → 撤銷 → 401，順序可重現。`./scripts/check.sh` 額外驗證 introspection 不可用時回 503。說得出「撤銷 API 回 200」和「Resource Server 已拒絕」為何是兩件事。
+選做有啟動 Server 的學員，完成後在終端 A 按 `Ctrl-C` 停止。Token 檔案不需提交到 Git，也不要把內容貼到聊天中。

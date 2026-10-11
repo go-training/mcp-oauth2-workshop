@@ -149,7 +149,7 @@ docker compose --env-file .env -f labs/06/compose.yml --profile "$LAB_LANGUAGE" 
 
 **Token 被撤銷，不代表本關的 Kong 會立刻拒絕它。** 本教材固定版本的 plugin 只做離線 JWT 驗證，不會在每次請求時向 Signet 查詢撤銷狀態。因此尚未到期、也符合其他檢查的 Token，撤銷後仍可能通過入口。
 
-本關不做撤銷實作，也不以撤銷結果驗收；先完成上面的入口與 Tool 權限練習即可。想觀察「同一顆 Token 撤銷後立即被拒絕」，再做課後選修 [Lab 05](../05/README.md) 的 introspection 練習。
+本關不做撤銷實作，也不以撤銷結果驗收；先完成上面的入口與 Tool 權限練習即可。想練習用既有 public Client 撤銷 Token，並觀察離線驗證的限制，可做課後選修 [Lab 05](../05/README.md)。
 
 ## 驗收與清理
 

@@ -13,8 +13,7 @@
 | Lab 02 一直 401                        | 這是設計，下一關才開始接受 Token                                                                       |
 | Lab 03 401                             | Token 必須是 RS256 access token；檢查 issuer、audience、expiry、kid，勿使用 refresh / ID token         |
 | 寫入回 403                             | 確認 Token 同時具有 notes:read 與 notes:write，重新授權後使用新檔案                                    |
-| Lab 05 503                             | introspection 是否可達、confidential credentials 是否有效；不要停用檢查來放行                          |
-| 撤銷 API 200 但還能用                  | 是否其實在跑 Lab 03/04/06？是否 AI CLI 自動取得新 Token？用同一 token file 呼叫 Lab 05                 |
+| 撤銷 API 200 但還能用                  | Lab 03–05 與 Kong 都離線驗 JWT，不查撤銷狀態；尚未到期的 Token 仍可能通過，不代表撤銷 API 失效                 |
 | Kong 啟動後 Empty reply                | 使用 Compose `up -d --wait --wait-timeout 120`；逾時看容器 logs                                        |
 | CLI OAuth session expired              | 先登入 Claude／Codex 本身的模型帳號；MCP Connected 不代表模型帳號有效                                  |
 | Go tools fetch failed、audience schema | 更新教材到修正版本並重啟 Server；舊版 whoami 的 boolean schema 不相容 Claude                           |

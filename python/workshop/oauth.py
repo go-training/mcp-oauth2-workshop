@@ -197,7 +197,7 @@ def revoke(args):
             },
         )
         response.raise_for_status()
-    print("Revocation accepted. Keep this file to prove the SAME token now fails in Lab 05.")
+    print("Revocation accepted. Offline JWT verification may still accept this token until expiry.")
 
 
 def main():

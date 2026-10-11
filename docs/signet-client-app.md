@@ -143,7 +143,7 @@ export LAB_LANGUAGE=go  # 或 python
 
 AI CLI 備援用新名稱 `workshop-fallback`，將 [Client 指南](clients.md) 的 public Client ID 換成共用 ID。自己的 App 設定完成後，以自己的 ID 新增 `workshop-personal` 並重新授權；舊 Token 不會因為你改了 `.env` 就變成由新 App 簽發。
 
-不要共用登入帳號、Token、confidential Client secret 或講師管理員帳密。課後選修 Lab 05 才需向講師另行取得 introspection 憑證，不能用自己的 public Client ID 取代。
+不要共用登入帳號、Token、confidential Client secret 或講師管理員帳密。課後選修 Lab 05 沿用自己的 public Client ID 撤銷 Token，不需另一組 Client 憑證。
 
 ## 常見卡點
 

@@ -1,5 +1,5 @@
 // Package workshop contains the transport and authorization layers shared by the labs.
-// Read NewHandler and authorize in order: discovery -> JWT -> scope -> revocation.
+// Read NewHandler and authorize in order: discovery -> JWT -> scope.
 package workshop
 
 import (
@@ -24,9 +24,9 @@ import (
 )
 
 type Config struct {
-	Lab                                                 int
-	Listen, Resource, Issuer, ReadScope, WriteScope     string
-	IntrospectionID, IntrospectionSecret, GatewaySecret string
+	Lab                                             int
+	Listen, Resource, Issuer, ReadScope, WriteScope string
+	GatewaySecret                                   string
 }
 
 func env(key, fallback string) string {
@@ -36,7 +36,7 @@ func env(key, fallback string) string {
 	return fallback
 }
 func LoadConfig(lab int) Config {
-	return Config{lab, env("LISTEN_ADDR", "127.0.0.1:8000"), env("MCP_RESOURCE", "http://localhost:8000/mcp"), os.Getenv("SIGNET_ISSUER"), env("READ_SCOPE", "notes:read"), env("WRITE_SCOPE", "notes:write"), os.Getenv("INTROSPECTION_CLIENT_ID"), os.Getenv("INTROSPECTION_CLIENT_SECRET"), os.Getenv("GATEWAY_SHARED_SECRET")}
+	return Config{lab, env("LISTEN_ADDR", "127.0.0.1:8000"), env("MCP_RESOURCE", "http://localhost:8000/mcp"), os.Getenv("SIGNET_ISSUER"), env("READ_SCOPE", "notes:read"), env("WRITE_SCOPE", "notes:write"), os.Getenv("GATEWAY_SHARED_SECRET")}
 }
 
 // TrustedURL allows plaintext only for explicitly enabled loopback test fixtures.
@@ -114,7 +114,6 @@ type app struct {
 	cfg         Config
 	metadataURL string
 	keys        keyfunc.Keyfunc
-	introspect  string
 	mu          sync.Mutex
 	notes       map[string][]string
 }
@@ -160,12 +159,6 @@ func NewHandler(ctx context.Context, c Config) (http.Handler, error) {
 		a.keys, e = keyfunc.NewDefaultCtx(ctx, []string{jwks})
 		if e != nil {
 			return nil, e
-		}
-		if c.Lab == 5 {
-			a.introspect, _ = m["introspection_endpoint"].(string)
-			if a.introspect == "" || c.IntrospectionID == "" || c.IntrospectionSecret == "" {
-				return nil, errors.New("Lab 05 requires introspection endpoint and per-team confidential client credentials")
-			}
 		}
 	}
 	if c.Lab == 6 && len(c.GatewaySecret) < 32 {
@@ -276,29 +269,6 @@ func (a *app) verify(raw string) (identity, error) {
 	}
 	return identity{sub, scope, claims["aud"], jti}, nil
 }
-func (a *app) active(ctx context.Context, raw string) (bool, error) {
-	form := url.Values{"token": {raw}, "token_type_hint": {"access_token"}}
-	req, e := http.NewRequestWithContext(ctx, "POST", a.introspect, strings.NewReader(form.Encode()))
-	if e != nil {
-		return false, e
-	}
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	req.SetBasicAuth(url.QueryEscape(a.cfg.IntrospectionID), url.QueryEscape(a.cfg.IntrospectionSecret))
-	resp, e := httpClient.Do(req)
-	if e != nil {
-		return false, e
-	}
-	var result struct {
-		Active *bool `json:"active"`
-	}
-	if e = readJSON(resp, &result); e != nil {
-		return false, e
-	}
-	if result.Active == nil {
-		return false, errors.New("invalid introspection response")
-	}
-	return *result.Active, nil
-}
 func (a *app) authorize(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		c := a.cfg
@@ -322,17 +292,6 @@ func (a *app) authorize(next http.Handler) http.Handler {
 			if e != nil {
 				a.reject(w, 401, "invalid_token", c.ReadScope)
 				return
-			}
-			if c.Lab == 5 {
-				active, e := a.active(r.Context(), parts[1])
-				if e != nil {
-					a.reject(w, 503, "temporarily_unavailable", c.ReadScope)
-					return
-				}
-				if !active {
-					a.reject(w, 401, "invalid_token", c.ReadScope)
-					return
-				}
 			}
 		}
 		if c.Lab == 6 {

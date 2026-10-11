@@ -36,7 +36,7 @@ codex
 
 ## Lab 03 起：預先註冊的 public Client
 
-先完成 [建立自己的 Client App](signet-client-app.md)，自行補齊 scope、resource 並確認 active 後啟動 Lab 03，從 repo 根目錄載入 `.env`。`OAUTH_CLIENT_ID` 優先使用自己的 public App ID；設定尚未完成時才用講師共用的備援 ID。public Client 沒有 secret，不要填入 introspection Client 的 secret。
+先完成 [建立自己的 Client App](signet-client-app.md)，自行補齊 scope、resource 並確認 active 後啟動 Lab 03，從 repo 根目錄載入 `.env`。`OAUTH_CLIENT_ID` 優先使用自己的 public App ID；設定尚未完成時才用講師共用的備援 ID。public Client 不需要 secret；Lab 05 撤銷也沿用同一個 public Client ID。
 
 學員建立 App 時填入下列**精確** callback，建立後重新開啟編輯頁複核；共用備援 App 也使用相同設定：
 

@@ -50,7 +50,6 @@ class Issuer:
         self.jwk.update(kid="workshop-test", alg="RS256", use="sig")
         self.revoked = set()
         self.token_clients = {}
-        self.offline = False
         self.codes = {}
         self.exchanges = []
 
@@ -101,7 +100,6 @@ def issuer():
                         authorization_endpoint=fixture.url + "/authorize",
                         token_endpoint=fixture.url + "/token",
                         revocation_endpoint=fixture.url + "/revoke",
-                        introspection_endpoint=fixture.url + "/introspect",
                         code_challenge_methods_supported=["S256"],
                         authorization_response_iss_parameter_supported=True,
                     ),
@@ -133,15 +131,7 @@ def issuer():
                     self.rfile.read(int(self.headers["Content-Length"])).decode()
                 ).items()
             }
-            if self.path == "/introspect":
-                expected = "Basic " + base64.b64encode(b"team:secret").decode()
-                if self.headers.get("Authorization") != expected:
-                    return self.reply(401, {})
-                if fixture.offline:
-                    return self.reply(503, {})
-                # Signet's ownership default can return JUST active across clients.
-                self.reply(200, {"active": q["token"] not in fixture.revoked})
-            elif self.path == "/revoke":
+            if self.path == "/revoke":
                 client_id = q.get("client_id")
                 if not client_id or fixture.token_clients.get(q["token"]) != client_id:
                     return self.reply(400, {"error": "invalid_client"})
@@ -226,8 +216,8 @@ def start(language, issuer, tmp_path):
             "MCP_RESOURCE": resource,
             "LISTEN_ADDR": f"127.0.0.1:{p}",
             "ALLOW_INSECURE_ISSUER": "1",
-            "INTROSPECTION_CLIENT_ID": "team",
-            "INTROSPECTION_CLIENT_SECRET": "secret",
+            "INTROSPECTION_CLIENT_ID": "",
+            "INTROSPECTION_CLIENT_SECRET": "",
             "GATEWAY_SHARED_SECRET": "test-gateway-secret-with-32-characters",
             **overrides,
         }
@@ -265,7 +255,6 @@ def start(language, issuer, tmp_path):
             proc.kill()
             proc.wait()
         log.close()
-    issuer.offline = False
 
 
 def rpc(
@@ -392,15 +381,23 @@ def test_lab04_scope_isolation_and_audience(start, issuer):
     assert data(rpc(resource_b, issuer.token(resource_b)))["subject"] == "alice"
 
 
-def test_lab05_revocation_and_outage(start, issuer):
+def test_lab05_offline_validation_without_introspection(start, issuer):
     resource = start(5)
     token = issuer.token(resource)
     assert data(rpc(resource, token))["subject"] == "alice"
     issuer.revoked.add(token)
-    assert rpc(resource, token).status_code == 401
-    fresh = issuer.token(resource)
-    issuer.offline = True
-    assert rpc(resource, fresh).status_code == 503
+    # Offline JWT validation cannot observe the issuer's revocation state.
+    assert rpc(resource, token).status_code == 200
+    assert rpc(resource).status_code == 401
+    assert (
+        rpc(resource, issuer.token(resource, exp=int(time.time()) - 60)).status_code
+        == 401
+    )
+    assert rpc(resource, issuer.token("https://other.example/mcp")).status_code == 401
+    assert (
+        rpc(resource, token, name="create_note", arguments={"text": "no"}).status_code
+        == 403
+    )
 
 
 def test_lab06_gateway_boundary(start, issuer):
@@ -522,7 +519,14 @@ def test_reference_client_pkce_call_revoke(language, issuer, start, tmp_path):
     )
     assert result.returncode == 0, result.stderr
     assert token_file.read_bytes() == original_token_file
-    assert subprocess.run(command("call"), env=env, capture_output=True).returncode != 0
+    assert json.loads(original_token_file)["access_token"] in issuer.revoked
+    repeated = subprocess.run(
+        command("revoke", client_flag, "test-public"), env=env, capture_output=True
+    )
+    assert repeated.returncode == 0, repeated.stderr
+    assert token_file.read_bytes() == original_token_file
+    # Revocation is recorded by the issuer, but the server only verifies JWTs offline.
+    assert subprocess.run(command("call"), env=env, capture_output=True).returncode == 0
 
 
 def test_reference_client_rejects_unsafe_destination(language, tmp_path):

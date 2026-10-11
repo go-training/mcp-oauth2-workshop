@@ -10,7 +10,7 @@ import json
 import logging
 import os
 from dataclasses import dataclass
-from urllib.parse import quote_plus, urlsplit
+from urllib.parse import urlsplit
 
 import httpx
 import jwt
@@ -31,8 +31,6 @@ class Config:
     issuer: str = ""
     read_scope: str = "notes:read"
     write_scope: str = "notes:write"
-    introspection_id: str = ""
-    introspection_secret: str = ""
     gateway_secret: str = ""
 
     @classmethod
@@ -43,8 +41,6 @@ class Config:
             issuer=os.getenv("SIGNET_ISSUER", ""),
             read_scope=os.getenv("READ_SCOPE", "notes:read"),
             write_scope=os.getenv("WRITE_SCOPE", "notes:write"),
-            introspection_id=os.getenv("INTROSPECTION_CLIENT_ID", ""),
-            introspection_secret=os.getenv("INTROSPECTION_CLIENT_SECRET", ""),
             gateway_secret=os.getenv("GATEWAY_SHARED_SECRET", ""),
         )
 
@@ -125,10 +121,6 @@ class Authorization:
         if 3 <= config.lab <= 5:
             metadata = discover(config.issuer)
             self.jwks = jwt.PyJWKClient(metadata["jwks_uri"], lifespan=300, timeout=5)
-            if config.lab == 5:
-                self.introspect = metadata["introspection_endpoint"]
-                if not config.introspection_id or not config.introspection_secret:
-                    raise ValueError("Lab 05 requires per-team introspection credentials")
         if config.lab == 6 and len(config.gateway_secret) < 32:
             raise ValueError("Lab 06 requires a random GATEWAY_SHARED_SECRET (32+ characters)")
 
@@ -155,20 +147,6 @@ class Authorization:
             "audience": claims["aud"],
             "token_id": claims.get("jti", ""),
         }
-
-    async def active(self, raw):
-        c = self.config
-        async with httpx.AsyncClient(timeout=5, follow_redirects=False) as client:
-            response = await client.post(
-                self.introspect,
-                data={"token": raw, "token_type_hint": "access_token"},
-                auth=(quote_plus(c.introspection_id), quote_plus(c.introspection_secret)),
-            )
-            response.raise_for_status()
-            active = response.json().get("active")
-            if not isinstance(active, bool):
-                raise ValueError("invalid introspection response")
-            return active
 
     def denied(self, status, error, required=None):
         headers = {"Cache-Control": "no-store"}
@@ -235,13 +213,6 @@ class Authorization:
                 return await self.denied(503, "temporarily_unavailable")(scope, receive, send)
             except (jwt.PyJWTError, ValueError, TypeError, KeyError):
                 return await self.denied(401, "invalid_token")(scope, receive, send)
-            if c.lab == 5:
-                try:
-                    active = await self.active(parts[1])
-                except (httpx.HTTPError, ValueError):
-                    return await self.denied(503, "temporarily_unavailable")(scope, receive, send)
-                if not active:
-                    return await self.denied(401, "invalid_token")(scope, receive, send)
         if c.lab == 6:
             if not hmac.compare_digest(headers.get("x-workshop-gateway", ""), c.gateway_secret):
                 return await self.denied(401, "untrusted_gateway")(scope, receive, send)
