@@ -12,6 +12,42 @@ Lab 02 已找到 Signet 的登入與 Token 端點；Lab 03 要實際完成一次
 
 完成後，你應能觀察到：未帶 Token 的請求回 `401`；帶有效 Token 呼叫 `whoami` 成功，結果中的 `subject` 是你登入的練習帳號識別值。不需要先讀懂 JWT 或 PKCE 的程式碼；讀取與寫入權限的差異留到 Lab 04 練習。
 
+## 從登入到取得 Token 的 Sequence Diagram
+
+接續 [Lab 02 的授權探索](../02/README.md#角色與-sequence-diagram)，本圖從 Client 已取得 Signet metadata 開始。Client 指本關的 `oauth.sh` 指令；瀏覽器讓你登入與確認授權；Signet 負責發 Token；MCP Server 負責驗證 Token 並執行工具。
+
+```mermaid
+sequenceDiagram
+    participant C as Client（oauth.sh）
+    participant B as 瀏覽器（你）
+    participant A as Signet（授權伺服器）
+    participant R as MCP Server（資源伺服器）
+
+    Note over C,A: 執行 login：開始登入授權
+    Note over C: 產生 state 與 PKCE verifier<br/>由 verifier 算出 challenge，保留 verifier
+    C-->>B: 提供授權網址，由你開啟
+    B->>A: 開啟登入授權頁<br/>帶 client_id、resource、scope、state、challenge（S256）與 redirect_uri
+    Note over B,A: 你登入練習帳號，確認 App 與權限後按允許
+    A-->>B: 重新導向 Client 的 callback<br/>帶授權碼 code 與 state
+    B->>C: 呼叫 http://127.0.0.1:8765/callback<br/>帶回 code 與 state
+    Note over C: 檢查 state，確認是這次登入的回應<br/>依 metadata 與回應檢查 issuer
+    C->>A: 向 token_endpoint 換 Token<br/>送出 code、code_verifier、client_id、redirect_uri 與相同 resource
+    Note over A: 驗證授權碼與 PKCE 配對等資訊
+    A-->>C: Access Token
+    Note over C: 儲存 Token 檔<br/>終端顯示 Saved access token
+
+    Note over C,R: 執行 call --tool whoami：使用 Token
+    C->>R: 呼叫 whoami<br/>附上 Authorization: Bearer Token
+    Note over R: 驗證簽章、issuer、audience、有效期限等
+    R-->>C: 200，回傳身分資訊（含 subject）
+```
+
+看圖時先掌握三件事：
+
+1. **瀏覽器帶回的是授權碼（code）。** Client 收到授權碼後，還要向 Signet 換取 Access Token，才完成 `login`。
+2. **PKCE 讓換 Token 時能核對是否持有原先的 verifier。** Client 先送出由 verifier 算出的 challenge，之後換 Token 才送 verifier，讓 Signet 檢查兩者是否配對。本關 Client 會自動處理，不需手動計算。
+3. **拿到 Token 後，才呼叫 MCP Server。** `call` 會讀取 Token 檔並附在請求中；Server 驗證通過後，`whoami` 才會回傳你的身分。
+
 ## 環境設定
 
 所有指令從 repo 根目錄執行。每個終端先選語言並載入設定：
