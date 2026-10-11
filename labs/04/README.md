@@ -4,6 +4,16 @@
 
 完整實作：[Go](../../go/internal/workshop/server.go) / [Python](../../python/workshop/server.py)。每關都可直接執行，不需從上一關複製程式。
 
+## 本關目標
+
+Lab 03 已確認「你是誰」，本關要透過實際呼叫工具，確認「你能做什麼、能存取哪台 Server，以及能看到誰的資料」。不需要修改或閱讀程式碼。
+
+- **權限（scope）：** 只有讀取權限時可以列出筆記，但不能新增；取得寫入權限後才能新增。
+- **適用對象（audience）：** 給 Server A 的 Token，不能拿去存取 Server B。
+- **帳號隔離（subject）：** 同一台 Server 上，不同帳號只能看到自己的筆記。
+
+## 環境設定
+
 所有指令從 repo 根目錄執行。每個終端先選語言並載入設定：
 
 ```bash
@@ -21,7 +31,7 @@ set +a
 ./scripts/lab.sh 04 "$LAB_LANGUAGE"
 ```
 
-另一個終端：
+在終端 B 逐行執行。每次 `login` 都先完成瀏覽器授權，回到終端看到 `Saved access token`，再執行下一行。重新練習時請換新的 Token 檔名，程式不會覆寫已有檔案。
 
 ```bash
 ./scripts/oauth.sh "$LAB_LANGUAGE" login --scopes notes:read --token-file .tokens/lab04-read.json
@@ -32,7 +42,7 @@ set +a
 ./scripts/oauth.sh "$LAB_LANGUAGE" call --token-file .tokens/lab04-write.json --tool create_note --text '取得寫入權限後成功'
 ```
 
-觀察 `403` 的 `WWW-Authenticate` 中 `error=insufficient_scope` 及所需 scopes。Server 在 HTTP middleware 檢查 `tools/call` 的工具名稱，讓 Client 看得到 transport 層 challenge；工具 handler 再檢查一次，避免日後更動 transport 時漏掉業務權限。
+預期依序看到：列出筆記成功（`200`，剛啟動時是空清單）、新增被拒絕（`403`）、補上寫入權限後新增成功（`200`）。`403` 回應中的 `insufficient_scope` 表示這份 Token 的權限不足，需要重新授權取得含 `notes:write` 的 Token。
 
 ## 操作：resource / audience
 
@@ -55,14 +65,66 @@ MCP_RESOURCE=http://localhost:8001/mcp LISTEN_ADDR=127.0.0.1:8001 ./scripts/lab.
 
 ## 觀察與練習
 
-Go：`authorize` 的 scope 分支與 `create_note` handler；Python：`Authorization.__call__` 與 `create_note`。JWT audience 從 Lab 03 就有檢查，此關不關閉驗證。
+### 1. 確認剛才新增的筆記真的存在
 
-以另一個練習帳號登入並呼叫 `list_notes`，應看不到第一個帳號的筆記。不要交換彼此 Token。
+保持 Server A 與 B 執行，在終端 B 使用第一個帳號的讀取 Token：
 
-AI CLI 對 step-up 的呈現可能不同：參照 [Client 指引](../../docs/clients.md) 重新授權；不假設兩者都自動升級 scope。上述參考 Client 是可重現的驗收方式。
+```bash
+./scripts/oauth.sh "$LAB_LANGUAGE" call --token-file .tokens/lab04-read.json --tool list_notes
+```
+
+**預期結果：** 收到 `200`，清單中有「取得寫入權限後成功」，沒有「應該被拒絕」。這表示讀取 Token 仍可讀資料，但先前被拒絕的新增操作沒有寫入筆記。
+
+### 2. 對照兩種拒絕結果
+
+把前面操作的輸出對照下表，不需額外修改設定：
+
+| 你做的操作                            | 預期結果 | 本次結果的意思                 |
+| ------------------------------------- | -------- | ------------------------------ |
+| 用 A 的讀取 Token 在 A 新增筆記       | `403`    | Token 有效，但沒有寫入權限     |
+| 用 A 的讀寫 Token 在 A 新增筆記       | `200`    | Token 有效，且具有寫入權限     |
+| 把 A 的 Token 送到 B                  | `401`    | 這份 Token 的適用對象不是 B    |
+| 為 B 重新登入，再用 B 的 Token 呼叫 B | `200`    | Token 的適用對象正確，驗證通過 |
+
+### 3. 換帳號，確認筆記不會混在一起
+
+這一步需要另一個可用的練習帳號；若沒有，請向講師取得。兩個帳號都連到 **Server A（8000）**，且過程中不要重啟 Server A，因為本課程的筆記保存在記憶體中，重啟就會清空。
+
+先確認第一個帳號的身分：
+
+```bash
+./scripts/oauth.sh "$LAB_LANGUAGE" call --token-file .tokens/lab04-read.json --tool whoami
+```
+
+記下結果中的 `subject`。接著在瀏覽器登出 Signet，執行下列登入指令，開啟新授權網址並使用**第二個練習帳號**登入。若仍自動登入第一個帳號，可把新網址貼到無痕視窗完成授權。
+
+```bash
+./scripts/oauth.sh "$LAB_LANGUAGE" login --scopes notes:read --token-file .tokens/lab04-other-read.json
+# 看到 Saved access token 後，再執行以下兩行。
+./scripts/oauth.sh "$LAB_LANGUAGE" call --token-file .tokens/lab04-other-read.json --tool whoami
+./scripts/oauth.sh "$LAB_LANGUAGE" call --token-file .tokens/lab04-other-read.json --tool list_notes
+```
+
+**預期結果：** 第二個帳號的 `subject` 與第一個不同，筆記清單看不到第一個帳號新增的「取得寫入權限後成功」；若第二個帳號還沒新增過筆記，會看到空清單。
+
+最後再執行步驟 1 的指令，確認第一個帳號仍看得到自己的筆記。這樣才能確認資料確實依帳號隔離，而非 Server 重啟後資料被清空。不要交換彼此的 Token。
+
+### 進階：閱讀實作或使用 AI CLI（選讀）
+
+- Go：閱讀 [Server](../../go/internal/workshop/server.go) 的 `authorize` scope 分支與 `create_note` handler。
+- Python：閱讀 [Server](../../python/workshop/server.py) 的 `Authorization.__call__` 與 `create_note`。
+
+Server 先在 HTTP middleware 檢查工具所需權限，再由工具 handler 檢查一次。JWT audience 從 Lab 03 就有檢查，本關只是實際測試 Token 送到不同 Server 時會被拒絕。
+
+若要用 Claude Code 或 Codex 重做練習，可參照 [Client 指引](../../docs/clients.md) 重新授權。兩者不一定會自動引導補上權限（step-up）；本關以上述 `oauth.sh` 指令的結果作為驗收依據。
 
 ## 驗收
 
-讀取成功、未授權寫入回 403、補 scope 後寫入成功；A Token 到 B 回 401、B 自己的 Token 成功；筆記依 subject 隔離。
+完成以下項目，就達成本關目標：
+
+- [ ] 只有讀取權限時，列出筆記成功，新增筆記回 `403`。
+- [ ] 取得寫入權限後新增成功，重新列出筆記能看到新增內容。
+- [ ] A 的 Token 呼叫 B 回 `401`；改用為 B 取得的 Token 後成功。
+- [ ] 兩個帳號的 `subject` 不同；第二個帳號看不到第一個帳號的筆記，第一個帳號仍看得到。
 
 完成後，在終端 A 與 C 分別按 `Ctrl-C`，停止 8000 與 8001；否則 Lab 05 可能遇到 port 被占用。
