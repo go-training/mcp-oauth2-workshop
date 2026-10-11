@@ -181,13 +181,20 @@ def call(args):
 
 
 def revoke(args):
+    if not args.client_id:
+        raise ValueError("client ID is required for revocation")
     stored = json.loads(args.token_file.read_text())
     if stored["issuer"] != args.issuer:
         raise ValueError("token issuer differs from configured issuer")
     endpoint = discover(args.issuer)["revocation_endpoint"]
     with httpx.Client(timeout=10, follow_redirects=False) as client:
         response = client.post(
-            endpoint, data={"token": stored["access_token"], "token_type_hint": "access_token"}
+            endpoint,
+            data={
+                "client_id": args.client_id,
+                "token": stored["access_token"],
+                "token_type_hint": "access_token",
+            },
         )
         response.raise_for_status()
     print("Revocation accepted. Keep this file to prove the SAME token now fails in Lab 05.")

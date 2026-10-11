@@ -49,6 +49,7 @@ class Issuer:
         self.jwk = json.loads(jwt.algorithms.RSAAlgorithm.to_jwk(self.key.public_key()))
         self.jwk.update(kid="workshop-test", alg="RS256", use="sig")
         self.revoked = set()
+        self.token_clients = {}
         self.offline = False
         self.codes = {}
         self.exchanges = []
@@ -141,6 +142,9 @@ def issuer():
                 # Signet's ownership default can return JUST active across clients.
                 self.reply(200, {"active": q["token"] not in fixture.revoked})
             elif self.path == "/revoke":
+                client_id = q.get("client_id")
+                if not client_id or fixture.token_clients.get(q["token"]) != client_id:
+                    return self.reply(400, {"error": "invalid_client"})
                 fixture.revoked.add(q["token"])
                 self.reply(200, {})
             elif self.path == "/token":
@@ -160,12 +164,12 @@ def issuer():
                 ):
                     return self.reply(400, {"error": "invalid_grant"})
                 fixture.exchanges.append(q)
+                token = fixture.token(q["resource"], scope=original["scope"])
+                fixture.token_clients[token] = q["client_id"]
                 self.reply(
                     200,
                     {
-                        "access_token": fixture.token(
-                            q["resource"], scope=original["scope"]
-                        ),
+                        "access_token": token,
                         "token_type": "Bearer",
                     },
                 )
@@ -502,9 +506,22 @@ def test_reference_client_pkce_call_revoke(language, issuer, start, tmp_path):
     assert token_file.stat().st_mode & 0o777 == 0o600
     assert issuer.exchanges[-1]["resource"] == resource
     assert subprocess.run(command("call"), env=env, capture_output=True).returncode == 0
-    assert (
-        subprocess.run(command("revoke"), env=env, capture_output=True).returncode == 0
+    client_flag = "-client-id" if language == "go" else "--client-id"
+    original_token_file = token_file.read_bytes()
+    for client_id in ("", "another-public"):
+        result = subprocess.run(
+            command("revoke", client_flag, client_id), env=env, capture_output=True
+        )
+        assert result.returncode != 0
+        assert (
+            subprocess.run(command("call"), env=env, capture_output=True).returncode
+            == 0
+        )
+    result = subprocess.run(
+        command("revoke", client_flag, "test-public"), env=env, capture_output=True
     )
+    assert result.returncode == 0, result.stderr
+    assert token_file.read_bytes() == original_token_file
     assert subprocess.run(command("call"), env=env, capture_output=True).returncode != 0
 
 

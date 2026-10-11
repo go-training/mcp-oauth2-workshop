@@ -257,6 +257,10 @@ func main() {
 			e = json.NewEncoder(os.Stdout).Encode(m)
 		}
 	case "revoke":
+		if *id == "" {
+			e = errors.New("client ID is required for revocation")
+			break
+		}
 		var t storedToken
 		t, e = load(*path)
 		if e == nil && t.Issuer != *issuer {
@@ -271,7 +275,7 @@ func main() {
 					e = errors.New("missing revocation_endpoint")
 				} else {
 					var resp *http.Response
-					resp, e = client.PostForm(endpoint, url.Values{"token": {t.AccessToken}, "token_type_hint": {"access_token"}})
+					resp, e = client.PostForm(endpoint, url.Values{"client_id": {*id}, "token": {t.AccessToken}, "token_type_hint": {"access_token"}})
 					if e == nil {
 						resp.Body.Close()
 						if resp.StatusCode != 200 {
