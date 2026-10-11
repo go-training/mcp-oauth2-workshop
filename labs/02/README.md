@@ -13,6 +13,59 @@ source .env
 set +a
 ```
 
+## 角色與 Sequence Diagram
+
+| 角色                 | 本課程中的對應                                     | 責任                                                |
+| -------------------- | -------------------------------------------------- | --------------------------------------------------- |
+| Client               | MCP Client；本關用 `curl` 與 metadata 指令逐步觀察 | 探索 metadata，後續取得並攜帶 Access Token 呼叫 MCP |
+| Resource Server      | `http://localhost:8000/mcp` 的 MCP Server          | 提供受保護資源、回傳 401 challenge，並公開 PRM      |
+| Authorization Server | Signet                                             | 提供 AS metadata，後續處理登入、授權與簽發 Token    |
+
+`/.well-known/oauth-protected-resource/mcp` 是 Resource Server 提供的 **Protected Resource Metadata（PRM）端點**，不是另一台伺服器。PRM 的 `resource` 識別受保護資源，`authorization_servers` 列出授權伺服器的 issuer；Client 再向選定的 issuer 探索 AS metadata，取得登入與換 Token 的端點。
+
+以下依 [MCP Authorization Server Discovery 時序圖](https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization/authorization-server-discovery#sequence-diagram) 改寫，套用本課程的角色與路徑：
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant R as MCP Server（Resource Server）
+    participant A as Signet（Authorization Server）
+
+    C->>R: GET /mcp（未帶 Token）
+    R-->>C: 401 + WWW-Authenticate: Bearer
+
+    alt challenge 含 resource_metadata（本課程）
+        C->>R: GET resource_metadata 指定的 URL
+        R-->>C: PRM：resource、authorization_servers
+    else challenge 未提供 resource_metadata
+        C->>R: GET /.well-known/oauth-protected-resource/mcp
+        alt 找到 PRM
+            R-->>C: PRM：resource、authorization_servers
+        else 未找到，嘗試根路徑
+            C->>R: GET /.well-known/oauth-protected-resource
+            R-->>C: PRM 或探索失敗
+        end
+    end
+
+    Note over C: 確認 PRM，選擇 authorization_servers 中的 issuer<br/>若無可用 PRM，停止此探索流程
+    C->>A: GET AS metadata（依 issuer 建構 well-known URL）
+    Note over C,A: 依規範順序嘗試 OAuth / OpenID Connect discovery
+    A-->>C: issuer、authorization_endpoint、token_endpoint 等
+    Note over C: 驗證 metadata 的 issuer 與選定值一致
+    Note over C,A: Lab 02 到此結束，不需登入或取得 Token
+
+    opt 後續實作完整授權流程（非 Lab 02）
+        Note over C,A: 完成 Client 設定、PKCE 與瀏覽器登入授權
+        C->>A: 向 token_endpoint 以授權碼與 code_verifier 換 Token
+        A-->>C: Access Token
+        C->>R: MCP request + Authorization: Bearer Token
+        Note over R: 驗證 Token 與存取權限
+        R-->>C: MCP response（驗證通過）
+    end
+```
+
+Client 直接向兩台 Server 取得各自的 metadata；這段 discovery 不會由 Resource Server 代替 Client 登入或換 Token。**Lab 02 即使收到有效 Token 也仍回 401**，圖中的成功呼叫是後續流程示意。
+
 ## 操作
 
 先停止 Lab 01；載入自己從 `.env.example` 建立的 `.env`，再啟動。此關不需要 Client ID，也不需登入，可同步補齊 Lab 01 的 App 設定：
