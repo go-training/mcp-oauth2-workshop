@@ -13,11 +13,50 @@ source .env
 set +a
 ```
 
-## 架構目的
+## 為什麼要用 Kong MCP Gateway？
 
-最後才加入 Kong：當有許多 MCP Server，共通的 discovery、JWT 驗證與入口 scope 可集中管理；個別工具和資料權限仍由 MCP Server 負責。
+Lab 03–04 已經讓 MCP Server 自己驗證 Token。當團隊陸續開發筆記、訂單、庫存等多個 MCP 服務時，如果每個服務都各自處理 discovery、JWKS、JWT 驗證與入口 scope，這些共通邏輯就得在不同語言與專案中反覆設定、測試和維護。
+
+**這一關把共通的入口驗證交給 Kong，讓 MCP 服務開發者專注於 Tool 與業務邏輯。** 本教材使用 Kong 搭配 `mcp-oauth2` plugin，集中提供 MCP 授權所需的入口能力。
+
+- **減少重複實作**：Go／Python backend 不必各自維護 JWT 驗簽與 JWKS 取得邏輯。
+- **統一入口政策**：在 Gateway 設定各服務接受的 issuer、resource 與入口 scope，方便集中檢查與調整。
+- **減少服務直接暴露**：Client 連到 Gateway，backend 放在私有網路，由 Gateway 轉送通過入口檢查的請求。
+- **分開維護責任**：入口驗證設定由 Gateway 維護，Tool 的輸入、輸出、資料存取與業務規則由各 MCP 服務維護。
+
+本關只部署一個 MCP backend，先練習這個分工；相同架構可延伸到多個服務，但仍須為各服務設定正確的 route、resource 與權限。
+
+## 哪些交給 Gateway，哪些留在 MCP Server？
+
+| 責任                           | 本關由誰處理                      | 例子                                              |
+| ------------------------------ | --------------------------------- | ------------------------------------------------- |
+| 使用者登入、同意授權、發 Token | Signet；Client 執行 PKCE 登入流程 | Claude Code／Codex 取得 Token                     |
+| 告訴 Client 去哪裡登入         | Kong + `mcp-oauth2` plugin        | 401 challenge 與 Protected Resource Metadata      |
+| 驗證外部 Token 與入口 scope    | Kong + `mcp-oauth2` plugin        | 驗 JWT、issuer、audience、有效期限與 `notes:read` |
+| 確認請求來自可信任 Gateway     | MCP backend                       | 檢查共享憑證與身分 headers                        |
+| 判斷能否執行特定 Tool          | MCP backend                       | `create_note` 仍要求 `notes:write`                |
+| 判斷能否存取特定資料           | MCP backend                       | 依 subject 隔離筆記，不能讀取別人的資料           |
+
+所以可以把目標說成：**MCP 服務不用重做前面的 Token 驗證，但仍要決定這個使用者能操作哪些 Tool、哪些資料。** 登入與 Token 簽發仍由 Signet 負責，Kong 不會代替 Client 登入。
+
+```mermaid
+flowchart LR
+    C[AI Client] -->|登入、同意授權、PKCE| S[Signet]
+    S -->|發 Token| C
+    C -->|帶 Token 呼叫 MCP| K[Kong：驗 Token 與入口 scope]
+    K -->|轉送可信任身分| M[MCP Server：Tool 與資料權限]
+    K -->|取得公開 JWKS| S
+```
+
+對照 Lab 04：原本同一個 MCP Server 同時負責「驗 Token」和「執行 Tool」；本關把前者移到 Kong。接上 Gateway 後，只有 `notes:read` 的使用者仍不能呼叫 `create_note`，因為入口通過不代表擁有所有工具權限。
+
+### 為什麼 backend 可以信任 Gateway？
 
 這關的 Go/Python backend 不自行驗 JWT，而是驗證 Gateway 共享憑證並讀取可信任身分。Compose 不發布 backend port，使用私有 network；Kong 覆寫 Gateway 憑證並驗證外部 Token。Kong admin API 關閉。
+
+這些設定共同建立信任邊界。不能把 backend 直接開放給外部，再無條件相信呼叫者送來的 `X-MCP-Subject`；backend 仍會檢查 Gateway 憑證、必要身分欄位、issuer、audience 與 scope。
+
+Gateway 也增加一個需要部署與維運的服務，入口故障會影響經過它的請求。若只有單一 MCP Server，Lab 04 的自行驗證方式仍可使用；有多個服務需要共用入口政策時，集中管理的好處更明顯。
 
 ## 操作
 
@@ -66,6 +105,7 @@ curl -s http://localhost:9000/.well-known/oauth-protected-resource/mcp
 
 ## 對照與練習
 
+- 說明新增第二個 MCP 服務時，哪些驗證可沿用 Gateway 的做法，哪些 Tool／資料權限仍需由新服務實作。
 - 檢查 [Kong 設定產生器](../../scripts/configure_gateway.py)：issuer、resource path、required scopes。
 - PRM 路徑與 `/mcp` 都需要匹配 Kong route，`strip_path=false` 保留後端的 `/mcp`，`preserve_host=true` 保留 Client 入口 Host。
 - Go `authorize` / Python `Authorization.__call__` 的 Lab 06 分支顯示 Gateway 信任邊界。
@@ -79,7 +119,7 @@ curl -s http://localhost:9000/.well-known/oauth-protected-resource/mcp
 
 ## 驗收與清理
 
-兩種 backend 各自透過 Kong 成功呼叫，錯 audience 被拒、工具 scope 仍有效、後端沒有 host port。容器實測狀態見 [驗證紀錄](../../docs/validation.md)。
+能說出 Gateway 減少了哪些重複工作，以及為何 backend 仍需保留 Tool／資料權限。兩種 backend 各自透過 Kong 成功呼叫，錯 audience 被拒、工具 scope 仍有效、後端沒有 host port。容器實測狀態見 [驗證紀錄](../../docs/validation.md)。
 
 ```bash
 docker compose --env-file .env -f labs/06/compose.yml --profile "$LAB_LANGUAGE" logs --tail 50
