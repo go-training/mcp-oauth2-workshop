@@ -291,13 +291,19 @@ def data(response):
     return result.get("structuredContent") or json.loads(result["content"][0]["text"])
 
 
-def test_lab01_baseline(start):
+def test_lab01_baseline(start, language):
     resource = start(1)
     response = rpc(resource, method="server/discover")
     assert response.status_code == 200
     assert PROTOCOL_VERSION in response.json()["result"]["supportedVersions"]
     tools = rpc(resource, method="tools/list").json()["result"]["tools"]
     assert {t["name"] for t in tools} == {"whoami", "list_notes", "create_note"}
+    if language == "go":
+        identity_schema = next(t for t in tools if t["name"] == "whoami")[
+            "outputSchema"
+        ]
+        # Claude rejects a boolean audience schema, even though JSON Schema allows it.
+        assert isinstance(identity_schema["properties"]["audience"], dict)
     assert data(rpc(resource))["subject"] == "anonymous"
 
 
@@ -339,6 +345,13 @@ def test_lab03_signature_and_valid_identity(start, issuer):
     resource = start(3)
     token = issuer.token(resource)
     assert data(rpc(resource, token))["subject"] == "alice"
+    # Preserve both JWT audience shapes while publishing a concrete output schema.
+    assert data(rpc(resource, token))["audience"] == resource
+    audiences = [resource, "https://other.example/mcp"]
+    assert (
+        data(rpc(resource, issuer.token(resource, aud=audiences)))["audience"]
+        == audiences
+    )
     forged = jwt.encode(
         {"sub": "alice", "type": "access"},
         "not-the-private-key-and-not-an-rsa-key-either",

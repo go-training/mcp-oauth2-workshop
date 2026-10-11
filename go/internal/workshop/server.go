@@ -172,7 +172,22 @@ func NewHandler(ctx context.Context, c Config) (http.Handler, error) {
 		return nil, errors.New("Lab 06 requires a random GATEWAY_SHARED_SECRET of at least 32 characters")
 	}
 	s := mcp.NewServer(&mcp.Implementation{Name: fmt.Sprintf("workshop-go-lab%02d", c.Lab), Version: "1.0.0"}, nil)
-	mcp.AddTool(s, &mcp.Tool{Name: "whoami", Description: "Show the verified workshop identity; never returns a raw token"}, func(ctx context.Context, _ *mcp.CallToolRequest, _ struct{}) (*mcp.CallToolResult, identity, error) {
+	// JWT aud may be a string or an array. Avoid the boolean schema inferred
+	// from any: some MCP clients reject it during tools/list discovery.
+	identitySchema := map[string]any{
+		"type": "object",
+		"properties": map[string]any{
+			"subject": map[string]any{"type": "string"},
+			"scope":   map[string]any{"type": "string"},
+			"audience": map[string]any{"anyOf": []any{
+				map[string]any{"type": "string"},
+				map[string]any{"type": "array", "items": map[string]any{"type": "string"}},
+			}},
+			"token_id": map[string]any{"type": "string"},
+		},
+		"required": []string{"subject", "scope", "audience"},
+	}
+	mcp.AddTool(s, &mcp.Tool{Name: "whoami", Description: "Show the verified workshop identity; never returns a raw token", OutputSchema: identitySchema}, func(ctx context.Context, _ *mcp.CallToolRequest, _ struct{}) (*mcp.CallToolResult, identity, error) {
 		return nil, user(ctx), nil
 	})
 	type noteList struct {
