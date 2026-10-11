@@ -33,7 +33,7 @@
 | 描述                       | `HWDC MCP Authorization workshop; Go` 或 `Python`          | 練習編輯 App 的基本資料                                  |
 | Client 類型                | **公開 — SPA、CLI、行動應用程式（需要 PKCE）**             | CLI 不持有 client secret                                 |
 | 授權類型                   | 勾選 **授權碼流程 / Authorization Code Flow**              | 本課使用瀏覽器 + PKCE                                    |
-| 裝置授權流程 / Device Flow | 取消勾選（新表單可能預設勾選）                             | 不在六關主線使用                                         |
+| 裝置授權流程 / Device Flow | 取消勾選（新表單可能預設勾選）                             | 不在 90 分鐘主線使用                                         |
 | Client Credentials Flow    | 不勾選                                                     | 這是使用者授權練習                                       |
 | Personal API Key           | 不啟用                                                     | 本課不用固定 API key 取代 OAuth                          |
 | 權限範圍                   | 保留 `email profile`，加入 `openid notes:read notes:write` | Codex add 首次可能申請標準 scopes；MCP 使用 notes scopes |
@@ -125,7 +125,7 @@ export LAB_LANGUAGE=go  # 或 python
 
 1. 回到「我的應用程式」，開啟自己的 App 與「已授權的使用者」頁，觀察登入後的授權紀錄。
 2. 分辨「App 允許申請的 scopes」和「你這次實際同意的 scopes」。Lab 04 再申請 write 後重新比較。
-3. 在個人帳號的「已連線應用程式」查看自己的 Token／連線紀錄；Lab 05 仍以同一個 token file 驗證撤銷，避免 AI CLI 自動重新登入後誤判。
+3. 在個人帳號的「已連線應用程式」查看自己的 Token／連線紀錄；課後選修 Lab 05 以同一個 token file 驗證撤銷，避免 AI CLI 自動重新登入後誤判。
 4. 不操作其他學員的 App 或 Token，也不為了重練刪除整個 App。
 
 **檢查點 E：** 能說明帳號、Client App、授權紀錄和 Access Token 的差別。
@@ -143,7 +143,7 @@ export LAB_LANGUAGE=go  # 或 python
 
 AI CLI 備援用新名稱 `workshop-fallback`，將 [Client 指南](clients.md) 的 public Client ID 換成共用 ID。自己的 App 設定完成後，以自己的 ID 新增 `workshop-personal` 並重新授權；舊 Token 不會因為你改了 `.env` 就變成由新 App 簽發。
 
-不要共用登入帳號、Token、confidential Client secret 或講師管理員帳密。Lab 05 introspection 憑證仍由講師另行提供，不能用自己的 public Client ID 取代。
+不要共用登入帳號、Token、confidential Client secret 或講師管理員帳密。課後選修 Lab 05 才需向講師另行取得 introspection 憑證，不能用自己的 public Client ID 取代。
 
 ## 常見卡點
 

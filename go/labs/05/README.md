@@ -1,4 +1,4 @@
-# Lab 05 — go
+# Lab 05 — go（課後進階選修）
 
 See [完整練習步驟](../../../labs/05/README.md).
 

@@ -21,7 +21,7 @@ set +a
 
 ## 操作
 
-先停止 Lab 05。確認 `docker info` 與 `docker compose version` 成功；只有 Compose 指令存在、daemon 沒啟動仍不能操作。
+先停止 Lab 04 的 A/B Server（若曾啟動其他 Lab，也請先停止）。確認 `docker info` 與 `docker compose version` 成功；只有 Compose 指令存在、daemon 沒啟動仍不能操作。
 
 課前在實際操作電腦下載／編譯映像（Go 路線也要有 `python3` 執行設定產生器）：
 
@@ -75,7 +75,7 @@ curl -s http://localhost:9000/.well-known/oauth-protected-resource/mcp
 
 ## 撤銷限制
 
-本次固定版本的 plugin 只做離線 JWT 驗證，**Lab 06 不延續 Lab 05 的即時撤銷能力**。不要以「接上 Kong」推論已解決撤銷；可討論在 Gateway 增加狀態檢查，或後端保留 introspection 的取捨，但本 repo 不修改 plugin。
+本次固定版本的 plugin 只做離線 JWT 驗證，**不具備即時撤銷能力**。不要以「接上 Kong」推論已解決撤銷；課堂提醒此限制即可；撤銷與 introspection 的取捨留到課後選修 [Lab 05](../05/README.md)，本 repo 不修改 plugin。
 
 ## 驗收與清理
 

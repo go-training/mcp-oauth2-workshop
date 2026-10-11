@@ -52,11 +52,11 @@ Metadata 的 issuer 是 `https://signet.wu-boy.com`，宣告 S256 與 resource i
 
 Resource 逐字匹配。相同本機 URL 出現在不同學員電腦是同一個 OAuth resource 識別，**不表示不同筆電已由 audience 隔離**；本課跨資源隔離示範是 8000 / 8001 / 9000 三個識別。學員身分與資料隔離另由 subject 處理；勿交換 Token。
 
-### Confidential introspection Client（Lab 05）
+### Confidential introspection Client（課後選修 Lab 05）
 
-另為每組建立一組 active confidential Client 憑證，使用 Signet `/oauth/introspect`。不授予管理 API 權限，不使用講師管理員帳密。將 ID/secret 私下提供給該組，放在被 Git 忽略的 `.env`。
+90 分鐘主課不發放此憑證。若安排課後選修，再為參與組別建立一組 active confidential Client 憑證，使用 Signet `/oauth/introspect`。不授予管理 API 權限，不使用講師管理員帳密。將 ID/secret 私下提供給該組，放在被 Git 忽略的 `.env`。
 
-教材先驗證 JWT，再只取 introspection 的 `active` 狀態；不要依賴 introspection 回傳完整的身分或權限欄位。課前用每組憑證確認此流程可用。
+教材先驗證 JWT，再只取 introspection 的 `active` 狀態；不要依賴 introspection 回傳完整的身分或權限欄位。選修操作前用每組憑證確認此流程可用。
 
 ## 端點核對
 
@@ -70,7 +70,7 @@ Resource 逐字匹配。相同本機 URL 出現在不同學員電腦是同一個
 | Authorize      | `/oauth/authorize`                        | 使用者登入／同意                                  |
 | Token          | `/oauth/token`                            | PKCE code 換 Token，帶 resource                   |
 | Introspect     | `/oauth/introspect`                       | confidential Client Basic auth，每次請求查 active |
-| Revoke         | `/oauth/revoke`                           | form token；課前確認參考 Client 可完成撤銷        |
+| Revoke         | `/oauth/revoke`                           | public Client：form client_id、token、token_type_hint；選修前確認可完成撤銷        |
 
 `/oauth/revoke` 對不存在或已撤銷的 Token 仍可能回 200；必須再用相同 Token 呼叫 MCP 才能驗收。教材以 Resource Server 的允許／拒絕紀錄驗收；若要展示管理介面的事件紀錄，另行彩排並確認網站實際顯示的內容。
 
@@ -85,9 +85,9 @@ Resource 逐字匹配。相同本機 URL 出現在不同學員電腦是同一個
 - [ ] 共用備援 App 已跑通，切回學員自己的 ID 時確實重新登入。
 - [ ] Claude Code / Codex 各自登入、呼叫工具、重新授權成功；不要只測其中一套。
 - [ ] A Token 到 B 被拒；只有 read 的 Token 不能 write。
-- [ ] 撤銷後下一次請求被拒；introspection 失效時回 503。
+- [ ] 僅課後選修 Lab 05：撤銷後下一次請求被拒；introspection 失效時回 503，不列為主課開課條件。
 - [ ] Kong 的 Go / Python profiles 分別跑過。先停止一個 profile 再啟動另一個。
-- [ ] 以接近 60 人同時操作的登入、換 Token、JWKS、introspection 流量彩排容量。
+- [ ] 以接近 60 人同時操作的登入、換 Token、JWKS 流量彩排容量；introspection 僅在安排課後選修時另行彩排。
 - [ ] 確認會場 Wi-Fi、DNS、HTTPS、loopback callback 與 WSL2 瀏覽器導流。
 - [ ] 凍結教材 commit，預先下載 Go modules、uv dependencies、Kong / backend images。
 - [ ] 準備已下載的完成版與關鍵流程錄影作為網路故障備案。
@@ -96,4 +96,6 @@ Resource 逐字匹配。相同本機 URL 出現在不同學員電腦是同一個
 
 13:00–13:25 進場執行 health check、登入 Signet，尚未建立 App 的學員可先依教學填表；13:25 後協助備取學員；13:30 開始 90 分鐘主課。建議 3–4 位助教處理各區環境問題。Lab 01 約 4 分鐘 MCP baseline、6 分鐘 Client App 介面，Lab 02 同步協助設定問題。每關結束回報成功／卡住；卡住的學員直接啟動下一關完成版，保留主線時間。
 
-課後停用工作坊 Client／帳號、撤銷尚有效的授權、清理臨時資料。保留教材與匿名化問題紀錄供下一場改進。Device Flow 已移出六關主線，活動頁的現場承諾需由講師同步調整。
+主課依序為 Lab 01（10 分）、02（15 分）、03（25 分）、04（20 分）、06（10 分），另留 5 分鐘排錯緩衝與 5 分鐘 Q&A。Lab 04 結束後直接進 Lab 06；Lab 05 保留為課後進階選修，不發放 introspection secret、不做撤銷實作驗收。課堂只提醒：「Token 撤銷後，本地驗 JWT 的 Server 不一定立即知道；需要即時撤銷時，再進一步研究 introspection。」
+
+若安排課後選修，另行約定 Client／帳號可用期限與清理時間。課後停用工作坊 Client／帳號、撤銷尚有效的授權、清理臨時資料。保留教材與匿名化問題紀錄供下一場改進。Token 撤銷與 Device Flow 均不列入 90 分鐘主線，活動頁的現場承諾需由講師同步調整。

@@ -1,4 +1,4 @@
-# Lab 05：撤銷同一顆 Token
+# Lab 05：撤銷同一顆 Token（課後進階選修）
 
 [課程首頁](../../README.md) · [Go 入口](../../go/labs/05/main.go) · [Python 入口](../../python/labs/05/main.py)
 
@@ -13,11 +13,13 @@ source .env
 set +a
 ```
 
+本關不列入 90 分鐘主課與主課驗收。主課完成 Lab 04 後，直接前往 [Lab 06](../06/README.md)。本關保留完整程式與操作，供課後研究 Token 撤銷及 introspection。
+
 ## 操作
 
 先停止 Lab 04 的 A/B Server。終端 A 啟動本關，終端 B 依序執行登入、呼叫、撤銷、再次呼叫。
 
-講師為每組提供獨立 confidential Client 的 introspection 憑證；放入 `.env` 的 `INTROSPECTION_CLIENT_ID` / `INTROSPECTION_CLIENT_SECRET` 並重新載入。這不是 Claude Code／Codex 的 public Client，也不是 Signet 管理員密碼。
+課後操作前，先向講師另行取得該組專用 confidential Client 的 introspection 憑證；放入 `.env` 的 `INTROSPECTION_CLIENT_ID` / `INTROSPECTION_CLIENT_SECRET` 並重新載入。這不是 Claude Code／Codex 的 public Client，也不是 Signet 管理員密碼。
 
 載入後先確認兩項都有值，不要用 `echo` 印出 secret：
 
@@ -39,6 +41,10 @@ test -n "$INTROSPECTION_CLIENT_ID" && test -n "$INTROSPECTION_CLIENT_SECRET" && 
 ./scripts/oauth.sh "$LAB_LANGUAGE" revoke --token-file .tokens/lab05.json
 ./scripts/oauth.sh "$LAB_LANGUAGE" call --token-file .tokens/lab05.json
 ```
+
+`revoke` 使用登入時的 public Client ID（`OAUTH_CLIENT_ID`，亦可用 `--client-id` 指定），以 form 傳送 `client_id`、`token` 與 `token_type_hint=access_token`，不需要 Client secret。Signet 須確認 Token 屬於提出撤銷請求的 Client。這與 Server 查詢 introspection 時使用的 confidential Client 憑證是兩回事。
+
+本關刻意撤銷 access token，以驗證同一顆 Token 的拒絕結果；若手動撤銷 refresh token，應改送該 Token 並使用 `token_type_hint=refresh_token`。
 
 第一次 call 應回 200；revoke 應顯示 `Revocation accepted`。最後一次必須回 401，而且使用的是**同一個檔案、同一顆 Token**。不要用會自動重新登入／更新 Token 的 AI CLI 作為唯一撤銷證據。
 

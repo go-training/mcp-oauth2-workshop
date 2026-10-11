@@ -179,4 +179,4 @@ Server 先在 HTTP middleware 檢查工具所需權限，再由工具 handler �
 - [ ] A 的 Token 呼叫 B 回 `401`；改用為 B 取得的 Token 後成功。
 - [ ] 兩個帳號的 `subject` 不同；第二個帳號看不到第一個帳號的筆記，第一個帳號仍看得到。
 
-完成後，在終端 A 與 C 分別按 `Ctrl-C`，停止 8000 與 8001；否則 Lab 05 可能遇到 port 被占用。
+完成後，在終端 A 與 C 分別按 `Ctrl-C`，停止 8000 與 8001；接著前往 [Lab 06](../06/README.md)。[Lab 05](../05/README.md) 是課後進階選修。

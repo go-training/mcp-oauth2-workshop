@@ -1,6 +1,6 @@
 # Go 原始碼開發導讀
 
-這份文件說明 Go 版本的程式結構、資料流、授權判斷與測試方式，供想理解或擴充實作的同仁參考。實際上課操作請搭配 [六個 Lab 教材](../README.md#課程路線)、[Signet Client App 設定](../docs/signet-client-app.md) 與 [故障排除](../docs/troubleshooting.md)。
+這份文件說明 Go 版本的程式結構、資料流、授權判斷與測試方式，供想理解或擴充實作的同仁參考。實際上課操作請搭配 [主課與課後選修教材](../README.md#課程路線)、[Signet Client App 設定](../docs/signet-client-app.md) 與 [故障排除](../docs/troubleshooting.md)。
 
 Go 版本包含兩個可執行程式：MCP Resource Server，以及示範登入、呼叫與撤銷的 public OAuth Client。Signet 是外部 Authorization Server；本目錄不實作帳號登入、同意畫面或 Token 簽發。
 
@@ -51,7 +51,7 @@ Client App 的 Allowed Resources 應填可複製的完整 resource URL，例如 
 | [02](../labs/02/README.md) | 不建立已登入身分 | `/mcp` 固定回 401，即使傳入有效 Token | 觀察 challenge 與 Protected Resource Metadata |
 | [03](../labs/03/README.md) | JWT claims | JWT 簽章與 claims、讀取 scope | 建立可信身分；此階段 `create_note` 尚不要求寫入 scope |
 | [04](../labs/04/README.md) | JWT claims | Lab 03 加上 `create_note` 寫入 scope | scope、使用者資料與 resource audience 隔離 |
-| [05](../labs/05/README.md) | JWT claims | Lab 04 加上每次請求的 introspection | 同一顆 Token 撤銷後立即被下一次檢查拒絕 |
+| [05（課後選修）](../labs/05/README.md) | JWT claims | Lab 04 加上每次請求的 introspection | 同一顆 Token 撤銷後立即被下一次檢查拒絕 |
 | [06](../labs/06/README.md) | Gateway headers | Gateway secret、issuer、audience、subject、讀／寫 scope | 授權入口移到 Gateway，backend 仍執行業務權限檢查 |
 
 這不是逐關貼上程式的流程。每關都可獨立啟動，切換 Lab 就會建立新的 `app` 和筆記 map。Lab 06 也不是在 Lab 05 上再加 Gateway：Go backend 不再執行 JWT 驗證或 introspection。

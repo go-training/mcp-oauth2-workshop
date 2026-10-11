@@ -5,7 +5,7 @@
 
 讓 AI Agent、MCP Server 與 CLI 安全登入的實作工作坊。
 
-跟著六個小關卡，你會親手看到：一個沒有授權的 MCP Server 有多危險、OAuth 2.0 + PKCE 如何登入、Token 如何被驗證、撤銷，以及如何把授權集中到 Kong Gateway。教材以 **[MCP Authorization 2026-07-28](https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization/index)** 為基準。
+90 分鐘主課依序完成 Lab 01–04、06 五個關卡：觀察沒有授權的 MCP Server、透過 OAuth 2.0 + PKCE 登入、驗證 Token 與權限，以及把入口授權集中到 Kong Gateway。Lab 05 的 Token 撤銷保留為課後進階選修。教材以 **[MCP Authorization 2026-07-28](https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization/index)** 為基準。
 
 - 活動：[Hello World Dev Conference 2026](https://hwdc.ithome.com.tw/2026/lab/4993)
 - 時間：2026/10/14；13:00–13:30 環境準備，13:30–15:00 正式課程（活動頁另列 10/15 同內容場次）
@@ -48,7 +48,7 @@ chmod 600 .env
 | ------------------------ | ---------------------------------------------------------------------------------------------------- |
 | `SIGNET_ISSUER`          | **保持預設** `https://signet.wu-boy.com`（結尾不要加斜線）                                           |
 | `OAUTH_CLIENT_ID`        | 填入你自己的 Client App ID（Lab 01 建立並確認 active 後取得）；設定尚未完成時可先用講師提供的備援 ID |
-| `INTROSPECTION_CLIENT_*` | 先留空，Lab 05 時講師會發給你                                                                        |
+| `INTROSPECTION_CLIENT_*` | 主課留空；課後選修 Lab 05 才需另行取得憑證                                                           |
 | `GATEWAY_SHARED_SECRET`  | 先留空，Lab 06 才使用                                                                                |
 
 > **每開一個新終端都要重新載入 `.env`**，否則 Lab 會讀不到設定：
@@ -95,18 +95,21 @@ uv sync --project python --frozen
 
 ## 課程路線
 
-每一關都可以獨立啟動，不依賴前一關對程式碼的修改。只有 Lab 04 會同時開 A/B 兩個 Server。
+主課順序為 **01 → 02 → 03 → 04 → 06**；保留原編號，Lab 05 為課後選修。每一關都可以獨立啟動，不依賴前一關對程式碼的修改。只有 Lab 04 會同時開 A/B 兩個 Server。
 
 | Lab                     | 你要做什麼                                                        | 完成的標準                                                          | 時間  |
 | ----------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------- | ----- |
 | [01](labs/01/README.md) | 呼叫沒有授權的 MCP；登入 Signet、建立自己的 public Client App     | 工具呼叫成功（因為沒有保護）；App active 且設定完整                 | 10 分 |
 | [02](labs/02/README.md) | 從 401 一路追到 Protected Resource Metadata，再到 Signet metadata | 能說出「Client 怎麼知道要去哪裡登入」                               | 15 分 |
-| [03](labs/03/README.md) | PKCE 登入，並看 Server 如何驗 Token                               | 登入後呼叫成功；知道驗了簽章、issuer、audience、expiry、access type | 20 分 |
+| [03](labs/03/README.md) | PKCE 登入，並看 Server 如何驗 Token                               | 登入後呼叫成功；知道驗了簽章、issuer、audience、expiry、access type | 25 分 |
 | [04](labs/04/README.md) | 觀察 scope 與 resource 隔離                                       | 缺少寫入權限被擋；A 的 Token 打不進 B                               | 20 分 |
-| [05](labs/05/README.md) | 撤銷 Token 並觀察稽核                                             | 同一顆 Token 撤銷前成功、撤銷後失敗                                 | 10 分 |
 | [06](labs/06/README.md) | 把入口授權交給 Kong Gateway                                       | 對照「Server 自己授權」與「Gateway 集中授權」的差異                 | 10 分 |
 
-最後 5 分鐘 Q&A。
+主課實作共 80 分鐘，另留 5 分鐘排錯緩衝與最後 5 分鐘 Q&A。
+
+課後進階選修：[Lab 05：撤銷同一顆 Token](labs/05/README.md)，練習撤銷與 introspection，需另備 confidential Client 憑證，不列入主課驗收。
+
+課堂只需提醒：Token 撤銷後，本地驗 JWT 的 Server 不一定立即知道；需要即時撤銷時，再進一步研究 introspection。
 
 **關於你的 Client App**：新版 Signet 可自行填入 notes scopes 與 allowed resources，註冊頁明示立即啟用。Lab 01 建立後務必重新開啟詳情／編輯頁複核，Lab 03 使用自己的 ID。若現場顯示 pending 或設定有問題，請助教協助，必要時使用備援 ID。
 
@@ -114,30 +117,29 @@ uv sync --project python --frozen
 
 不熟這些詞也沒關係，Lab 會逐一示範。
 
-| 名詞                          | 一句話                                                                |
-| ----------------------------- | --------------------------------------------------------------------- |
-| Authorization Server (Signet) | 負責讓你登入、發 Token 的服務                                         |
-| Resource Server (MCP Server)  | 持有資料／工具，收到 Token 後決定放不放行                             |
-| Client (Claude Code / Codex)  | 代表你去登入、帶 Token 呼叫 MCP 的程式                                |
-| PKCE                          | 防止授權碼被攔截後冒用的機制，public Client 沒有 secret 時必備        |
-| scope                         | Token 被允許做的事，如 `notes:read`、`notes:write`                    |
-| audience / resource           | Token 是發給哪一個 Server 用的，A 的 Token 不能拿去打 B               |
-| JWKS                          | Server 用來驗證 Token 簽章的公鑰集合                                  |
-| introspection                 | Server 向 Signet 詢問「這顆 Token 還有效嗎」，Lab 05 用來實現即時撤銷 |
+| 名詞                          | 一句話                                                         |
+| ----------------------------- | -------------------------------------------------------------- |
+| Authorization Server (Signet) | 負責讓你登入、發 Token 的服務                                  |
+| Resource Server (MCP Server)  | 持有資料／工具，收到 Token 後決定放不放行                      |
+| Client (Claude Code / Codex)  | 代表你去登入、帶 Token 呼叫 MCP 的程式                         |
+| PKCE                          | 防止授權碼被攔截後冒用的機制，public Client 沒有 secret 時必備 |
+| scope                         | Token 被允許做的事，如 `notes:read`、`notes:write`             |
+| audience / resource           | Token 是發給哪一個 Server 用的，A 的 Token 不能拿去打 B        |
+| JWKS                          | Server 用來驗證 Token 簽章的公鑰集合                           |
 
 ## 架構
 
 ```mermaid
 flowchart TD
     C[Claude Code / Codex CLI] -->|登入、同意授權、PKCE| S[講師預先部署的 Signet HTTPS]
-    C -->|Labs 01–05：HTTP MCP| M[筆電上的 Go 或 Python MCP Server]
-    M -->|metadata / JWKS；Lab 05 加 introspection| S
+    C -->|主課 Labs 01–04：HTTP MCP| M[筆電上的 Go 或 Python MCP Server]
+    M -->|metadata / JWKS| S
     C -->|Lab 06| K[Kong + mcp-oauth2 plugin]
     K -->|私有網路、可信任身分| B[MCP Backend：保留工具授權]
     K -->|JWKS| S
 ```
 
-Client、Authorization Server、Resource Server 各自有清楚的責任。登入永遠由 Client 自己完成，Kong 不會代替使用者登入。Kong 只在最後一關出現，前五關不需要安裝。
+Client、Authorization Server、Resource Server 各自有清楚的責任。登入永遠由 Client 自己完成，Kong 不會代替使用者登入。Kong 只在主課最後的 Lab 06 出現，Lab 01–04 與課後選修 Lab 05 不需要安裝。
 
 ## 程式碼怎麼讀
 
@@ -171,11 +173,11 @@ Server 提供三個工具：`whoami`、`list_notes`、`create_note`。筆記只�
 - Lab 01 刻意沒有授權；Lab 02 刻意只回 discovery challenge、尚不接受 Token。這兩關是明確的教學中間狀態，不是 bug。
 - Labs 03–05 使用 RS256 + JWKS，這是本教材的選擇，MCP 規範並未強制使用 JWT。所有受保護關卡從一開始就驗證 audience。
 - Signet access token 必須是 `type=access`，refresh token 或 ID token 不能呼叫 MCP。
-- Lab 05 在本地驗證 JWT 後，每次請求再查 introspection 的 `active`，不快取成功結果；introspection 服務不可用時拒絕放行並回 503。
+- 課後選修 Lab 05 在本地驗證 JWT 後，每次請求再查 introspection 的 `active`，不快取成功結果；introspection 服務不可用時拒絕放行並回 503。
 - Lab 06 的 Kong plugin 是離線 JWT 驗證，**不具備 Lab 05 的即時撤銷保證**。實務上需決定在哪一層提供撤銷檢查，Gateway 不會自動解決所有授權問題。
 - `notes:read` 控制入口，`notes:write` 控制寫入工具；MCP Server 始終保留工具與資料的業務權限。
 - 本機範例僅允許 loopback HTTP，遠端 issuer 一律 HTTPS。`ALLOW_INSECURE_ISSUER=1` 只供本機測試 fixture，不能用來跳過遠端 TLS。
-- Device Flow 列為後續延伸主題，不在這六關內。
+- Device Flow 列為後續延伸主題，不在主課內。
 
 ## 文件與驗證
 

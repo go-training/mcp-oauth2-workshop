@@ -1,6 +1,6 @@
 # Python 原始碼開發導讀
 
-這份文件說明 Python 版本的程式結構、ASGI 請求流程、OAuth 授權判斷、參考 Client 與測試方式，供想深入理解或擴充程式的同仁參考。實際練習請搭配 [六個 Lab 教材](../README.md#課程路線)、[Signet Client App 設定](../docs/signet-client-app.md) 與 [故障排除](../docs/troubleshooting.md)。另一個語言版本可參考 [Go 原始碼開發導讀](../go/README.md)。
+這份文件說明 Python 版本的程式結構、ASGI 請求流程、OAuth 授權判斷、參考 Client 與測試方式，供想深入理解或擴充程式的同仁參考。實際練習請搭配 [主課與課後選修教材](../README.md#課程路線)、[Signet Client App 設定](../docs/signet-client-app.md) 與 [故障排除](../docs/troubleshooting.md)。另一個語言版本可參考 [Go 原始碼開發導讀](../go/README.md)。
 
 Python 版本包含 MCP Resource Server 與 public OAuth Client。Signet 是外部 Authorization Server，負責登入、授權與 Token 簽發；本目錄不實作 Signet 的帳號或同意畫面。
 
@@ -52,7 +52,7 @@ Client 負責取得並攜帶 Token；Resource Server 負責判定 Token 是否�
 | [02](../labs/02/README.md) | 不建立已登入身分 | `/mcp` 固定回 401，即使攜帶有效 Token | challenge 與 Protected Resource Metadata |
 | [03](../labs/03/README.md) | JWT claims | JWT 簽章、claims、讀取 scope | 可信身分；此關尚不要求寫入 scope |
 | [04](../labs/04/README.md) | JWT claims | Lab 03 加上 `create_note` 寫入 scope | scope、使用者筆記與 audience 隔離 |
-| [05](../labs/05/README.md) | JWT claims | Lab 04 加上每次請求的 introspection | 同一顆 Token 撤銷後被下一次檢查拒絕 |
+| [05（課後選修）](../labs/05/README.md) | JWT claims | Lab 04 加上每次請求的 introspection | 同一顆 Token 撤銷後被下一次檢查拒絕 |
 | [06](../labs/06/README.md) | Gateway headers | shared secret、subject、issuer、audience、讀／寫 scope | Gateway 集中驗 Token，backend 保留工具權限檢查 |
 
 每關可獨立啟動，不需要修改前一關的程式。切換關卡會建立新的 application 與筆記 dict。Lab 06 不會繼續執行 Lab 05 的 JWT／introspection 分支。
