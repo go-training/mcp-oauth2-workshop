@@ -4,8 +4,6 @@
 
 服務：[https://signet.wu-boy.com](https://signet.wu-boy.com/)。
 
-> 2026-10-11 已核對 Signet `v1.6.0-2-gc4d3d86`：註冊頁顯示新 App 立即啟用，提供自訂 scopes 與允許的資源。此次使用既有管理員帳號的前台介面；一般學員身分仍需課前複核。2026-10-12 線上版本已為 `v1.8.0`，畫面若與本文不同，以實際畫面為準。若部署改為審核制，以畫面狀態為準。
-
 ## 先理解三件事
 
 - **你的登入帳號**：代表使用者，Token 中的 subject 對應這個身分。
@@ -68,14 +66,14 @@ http://localhost:9000/mcp
 Allowed Resources 必須包含完整的 `http://localhost:PORT/mcp`，不要只填 `8000/mcp`，也不要加結尾斜線或把 `localhost` 換成 `127.0.0.1`。這三筆分別對應主 Server、Lab 04 的 Server B、Lab 06 的 Gateway，必須與 Client 送出的 resource 完全一致。
 
 3. 確認三個 callbacks、三個 resources、五個 scopes 都已形成標籤，才按「註冊應用程式」。留在輸入框的文字不等於已加入。
-4. 新版註冊頁說明建立後立即啟用；提交後仍要以詳情實際顯示的狀態為準。若仍為 pending，請找助教確認，先完成 Lab 02，必要時改用備援 ID。
+4. 註冊頁說明建立後立即啟用；提交後仍要以詳情實際顯示的狀態為準。若仍為 pending，請找助教確認，先完成 Lab 02，必要時改用備援 ID。
 
 **檢查點 B：** 取得 Client ID，public App 沒有 secret，狀態為 active／啟用。
 
 ## 3. 複核儲存結果，再練習編輯
 
 1. 開啟 App 詳情，複製 **Client ID**；名稱不是 ID。
-2. 進入編輯頁，核對 public、Authorization Code 已勾、三個 callbacks 與三個 resources 都有保存。**本次新版仍重現：建立時取消 Device Flow，首次編輯卻再次勾選。請在編輯頁取消，按更新後再開編輯頁確認已關閉。** 這是介面狀態問題，不要直接推論 Device Flow endpoint 已可用。
+2. 進入編輯頁，核對 public、Authorization Code 已勾、三個 callbacks 與三個 resources 都有保存。**若建立時已取消 Device Flow，首次編輯卻再次勾選，請在編輯頁取消，按更新後再開編輯頁確認已關閉。** 這是介面狀態問題，不要直接推論 Device Flow endpoint 已可用。
 3. 已保存的 `notes:read notes:write` 會出現在「已儲存的自訂與管理 scopes」，一般 Owner 無法移除；修改描述時會保留。不要因為不在可編輯標籤列就重複新增。
 4. 把描述補上語言與 CLI，例如 `HWDC MCP workshop; Python; Codex`，按「更新應用程式」，再回詳情確認。
 5. 若缺 scopes 或 resources，回自己的編輯頁補齊；找不到欄位或狀態仍 pending 才請助教處理。不需要為此換成 confidential App。
@@ -151,7 +149,7 @@ AI CLI 備援用新名稱 `workshop-fallback`，將 [Client 指南](clients.md) 
 | -------------------------- | -------------------------------------------------------------------------------------- |
 | pending 還不能登入         | 找助教確認，先繼續 Lab 02，必要時改用備援 ID                                           |
 | notes scopes 不在標籤列    | 查看「已儲存的自訂與管理 scopes」；新 scope 在輸入框按 Enter 新增                      |
-| 找不到 Allowed Resources   | 新版在 callbacks 下方；確認頁面版本並請助教協助                                        |
+| 找不到 Allowed Resources   | 欄位在 callbacks 下方；若找不到請助教協助                                        |
 | 建立時要求 redirect URI    | 勾選 Authorization Code，新增三個 callback 標籤                                        |
 | public App 沒有 secret     | 正常，PKCE 不需要共用 secret                                                           |
 | active 後仍 invalid_target | 回編輯頁核對三個完整 resource URL，不要跳過 audience 驗證                              |

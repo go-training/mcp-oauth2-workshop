@@ -7,10 +7,10 @@
 | issuer mismatch                        | SIGNET_ISSUER、metadata issuer、JWT iss 必須逐字一致                                                   |
 | invalid_target                         | Signet public Client 的 allowed_resources 是否包含精確 URL；localhost 與 127.0.0.1 不相同              |
 | invalid_scope                          | 在自己的 App 編輯頁加入 notes:read / notes:write；Codex 首次 add 另需 openid profile email             |
-| App 是 pending                         | 新版 App 建立後應立即啟用；仍顯示 pending 時找助教確認，先繼續 Lab 02，必要時改用備援 ID               |
+| App 是 pending                         | App 建立後應立即啟用；仍顯示 pending 時找助教確認，先繼續 Lab 02，必要時改用備援 ID               |
 | OAUTH_CLIENT_ID is still the placeholder | 編輯 `.env` 填入自己的 Client ID，再 `set -a; source .env; set +a`                                   |
 | authorization denied: invalid_scope    | 冒號後是 Signet 回傳的原因；依上方 invalid_scope / invalid_target 列處理                               |
-| UI 不能新增 notes scope / resource     | 新版可自行新增；輸入後按 Enter，若沒有欄位請核對部署版本，詳見 [Client App 教學](signet-client-app.md) |
+| UI 不能新增 notes scope / resource     | 可自行新增；輸入後按 Enter，若沒有欄位請助教協助，詳見 [Client App 教學](signet-client-app.md) |
 | redirect mismatch                      | 核對 Client 實際產生的 host、port、path 與預先註冊值；不要使用萬用 callback 放寬                       |
 | Lab 02 一直 401                        | 這是設計，下一關才開始接受 Token                                                                       |
 | Lab 03 401                             | Token 必須是 RS256 access token；檢查 issuer、audience、expiry、kid，勿使用 refresh / ID token         |

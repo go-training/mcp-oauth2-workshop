@@ -4,7 +4,7 @@
 
 ## 2026-10-11：Lab 06 操作流程複驗
 
-使用真實 Signet `https://signet.wu-boy.com`（介面版本 `v1.7.0-2-g7e68fb5`），重新完成 Go／Python 參考 Client 的 PKCE 登入，取得 Gateway 的 read、read+write Token 與 resource 8000 的 Token。Docker 29.2.1、Compose 5.1.4；重新建置映像後，分別啟動兩種 backend，切換前先停止上一組容器。
+使用真實 Signet `https://signet.wu-boy.com`，重新完成 Go／Python 參考 Client 的 PKCE 登入，取得 Gateway 的 read、read+write Token 與 resource 8000 的 Token。Docker 29.2.1、Compose 5.1.4；重新建置映像後，分別啟動兩種 backend，切換前先停止上一組容器。
 
 | 驗證 | Go backend | Python backend |
 | --- | --- | --- |
@@ -26,7 +26,7 @@
 
 Lab 05 已移除 introspection 與額外 confidential Client 憑證需求。必做流程改為 public Client 登入、撤銷與重複撤銷；Server 入口保留為選做，沿用 Lab 04 的離線 JWT／scope 檢查，不再以撤銷後立即回 401 驗收。
 
-本次真實 Signet 介面顯示版本 `v1.7.0-2-g7e68fb5`，issuer 為 `https://signet.wu-boy.com`。
+本次真實 Signet 的 issuer 為 `https://signet.wu-boy.com`。
 
 | 驗證 | Go | Python |
 | --- | --- | --- |
@@ -41,11 +41,11 @@ Lab 05 已移除 introspection 與額外 confidential Client 憑證需求。必�
 
 以下保留歷史紀錄；其中要求 introspection 憑證、期待撤銷後 401 或 503 的 Lab 05 描述，只適用於當時的舊版教材，不是目前的設定或驗收條件。
 
-## 2026-10-11：新版 Signet 重跑與教材修正
+## 2026-10-11：Signet 重跑與教材修正
 
 **本節為先前版本的歷史紀錄，保留當時結果；Lab 05 的目前流程與驗收請以上一節為準。當時未完成的其他現場項目仍需分別驗收。**
 
-環境：Signet `v1.6.0-2-gc4d3d86`、本機 Go 1.26.7、Python 3.12.13、Claude Code 2.1.263、Codex 0.162.1、Docker 29.2.1、Compose 5.1.4。真實 issuer 為 `https://signet.wu-boy.com`。
+環境：Signet、本機 Go 1.26.7、Python 3.12.13、Claude Code 2.1.263、Codex 0.162.1、Docker 29.2.1、Compose 5.1.4。真實 issuer 為 `https://signet.wu-boy.com`。
 
 | 項目                        | 本輪真實結果                                                                                                                                    |
 | --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -60,7 +60,7 @@ Lab 05 已移除 introspection 與額外 confidential Client 憑證需求。必�
 
 本輪 Labs 01–04 共 30 個 HTTP 狀態斷言與兩份 PRM 斷言；兩個 Gateway profiles 各 5 個 HTTP 斷言。兩套參考 Client 另有實際呼叫驗證。Token 全部保存為被忽略的 0600 檔案，未記錄 raw token。
 
-### 新版 App 流程
+### App 流程
 
 新建測試 App `hwdc-2026-rehearsal-20261011`，Client ID `e2836f48-bf8e-4edd-a18e-abb1e3a67bc9`。僅配置本機 workshop resources 與練習 scopes，沒有管理權限。此 App 完成「註冊 → 立即 active → 編輯描述 → PKCE 同意 notes:read → 呼叫 Python Lab 03 成功 → 已授權使用者頁顯示 notes:read 與 8000 resource」。保留供後續驗證，未取代原本 `.env` 的 public Client ID。
 
@@ -144,7 +144,7 @@ http://localhost:9000/mcp
 
 Lab 05 另外需要獨立 confidential introspection Client 憑證。此次未修改 Signet 的權限設定，亦未將失敗的登入算作六關通過。
 
-## 2026-10-10 晚間：更新後 Signet v1.6.0 彩排（尚未完成登入全流程）
+## 2026-10-10 晚間：Signet 彩排（尚未完成登入全流程）
 
 本輪實際使用 `https://signet.wu-boy.com`、Claude Code 2.1.263、Go / Python Server 與 Docker 29.2.1。以下是新增證據；下方較早紀錄的「瀏覽器不可用」「Docker daemon 未啟動」已不適用本輪。
 
@@ -176,7 +176,7 @@ Issue: Invalid input (at tools.2.outputSchema.properties.audience)
 
 ### 問題 2：Signet 註冊頁與教材的 scope 說明不一致
 
-部署 v1.6.0 的 `/apps/new` 已顯示自訂 scope 輸入、命名限制、保留前綴與「儲存後，非標準 scopes 僅能由管理員移除」提示。當時的 Client App 教學仍說一般表單只能選標準 scopes。此次使用的是已登入管理員帳號的前台表單；一般非管理員的實際新增權限仍需另測，不能由本次畫面直接宣稱兩者相同。
+當時部署的 `/apps/new` 已顯示自訂 scope 輸入、命名限制、保留前綴與「儲存後，非標準 scopes 僅能由管理員移除」提示。當時的 Client App 教學仍說一般表單只能選標準 scopes。此次使用的是已登入管理員帳號的前台表單；一般非管理員的實際新增權限仍需另測，不能由本次畫面直接宣稱兩者相同。
 
 ### 問題 3：建立 App 時取消 Device Flow，編輯頁卻仍顯示啟用
 

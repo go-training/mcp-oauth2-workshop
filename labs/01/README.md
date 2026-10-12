@@ -68,7 +68,7 @@ curl http://localhost:8000/healthz
 4. 提交後確認 active，取得 Client ID，進入編輯頁複核流程與所有 URL，再練習修改 App 描述。
 5. 將 ID 存入 `.env` 的 `OAUTH_CLIENT_ID`，在 Client 終端重新載入。
 
-新版立即啟用，不需排隊等講師核准。若現場畫面仍是 pending，請助教確認部署政策，可先做 Lab 02 或使用備援 public Client ID。App 的 public 是 OAuth 類型，不代表所有人都能管理你的 App。
+App 建立後立即啟用，不需排隊等講師核准。若現場畫面仍是 pending，請助教確認部署政策，可先做 Lab 02 或使用備援 public Client ID。App 的 public 是 OAuth 類型，不代表所有人都能管理你的 App。
 
 ## 觀察重點
 

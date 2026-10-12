@@ -111,7 +111,7 @@ uv sync --project python --frozen
 
 Token 撤銷後，本地驗 JWT 的 Server 不一定立即知道；需要即時撤銷時，再進一步研究 introspection。
 
-**關於你的 Client App**：新版 Signet 可自行填入 notes scopes 與 allowed resources，註冊頁明示立即啟用。Lab 01 建立後務必重新開啟詳情／編輯頁複核，Lab 03 使用自己的 ID。若現場顯示 pending 或設定有問題，請助教協助，必要時使用備援 ID。
+**關於你的 Client App**：Signet 可自行填入 notes scopes 與 allowed resources，註冊頁明示立即啟用。Lab 01 建立後務必重新開啟詳情／編輯頁複核，Lab 03 使用自己的 ID。若現場顯示 pending 或設定有問題，請助教協助，必要時使用備援 ID。
 
 ## 先備概念速查
 
