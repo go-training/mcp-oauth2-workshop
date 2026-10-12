@@ -132,7 +132,14 @@ func login(issuer, resource, id, scope, path string, port int) error {
 		fmt.Fprint(w, "Callback received. Return to the terminal.")
 	})}
 	go srv.Serve(ln)
-	defer srv.Close()
+	defer func() {
+		// Let the callback handler finish its browser response even on rejection.
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+		if err := srv.Shutdown(ctx); err != nil {
+			srv.Close()
+		}
+	}()
 	authorize, ok := m["authorization_endpoint"].(string)
 	if !ok {
 		return errors.New("missing authorization_endpoint")
@@ -145,15 +152,15 @@ func login(issuer, resource, id, scope, path string, port int) error {
 	case <-time.After(180 * time.Second):
 		return errors.New("login timed out")
 	}
-	if callback.Get("error") != "" || callback.Get("code") == "" {
-		return errors.New("authorization denied" + describe(callback.Get("error"), callback.Get("error_description")))
-	}
-	// RFC 9207: compare iss exactly; reject a missing iss when the server advertises it.
+	// RFC 9207: validate issuer before handling success or error responses.
 	if supported, _ := m["authorization_response_iss_parameter_supported"].(bool); supported && !callback.Has("iss") {
 		return errors.New("callback missing issuer")
 	}
 	if callback.Has("iss") && callback.Get("iss") != issuer {
 		return errors.New("callback issuer mismatch")
+	}
+	if callback.Get("error") != "" || callback.Get("code") == "" {
+		return errors.New("authorization denied" + describe(callback.Get("error"), callback.Get("error_description")))
 	}
 	endpoint, ok := m["token_endpoint"].(string)
 	if !ok {

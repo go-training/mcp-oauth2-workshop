@@ -52,6 +52,7 @@ class Issuer:
         self.token_clients = {}
         self.codes = {}
         self.exchanges = []
+        self.iss_supported = True
 
     def token(self, resource, **changes):
         claims = dict(
@@ -101,7 +102,7 @@ def issuer():
                         token_endpoint=fixture.url + "/token",
                         revocation_endpoint=fixture.url + "/revoke",
                         code_challenge_methods_supported=["S256"],
-                        authorization_response_iss_parameter_supported=True,
+                        authorization_response_iss_parameter_supported=fixture.iss_supported,
                     ),
                 )
             elif path == "/jwks":
@@ -622,7 +623,9 @@ def test_reference_client_reports_jsonrpc_error(language, tmp_path):
         server.server_close()
 
 
-def run_login(language, issuer, tmp_path, client_id, scopes="notes:read"):
+def run_login(
+    language, issuer, tmp_path, client_id, scopes="notes:read", callback_changes=None
+):
     """Drive a login until the client exits; the fixture plays the browser."""
     env = {
         **os.environ,
@@ -660,7 +663,17 @@ def run_login(language, issuer, tmp_path, client_id, scopes="notes:read"):
                 (line.strip() for line in lines if line.startswith("http")), None
             )
             if auth_url:
-                httpx.get(auth_url, follow_redirects=True)
+                response = httpx.get(auth_url, follow_redirects=False)
+                callback = urlsplit(response.headers["Location"])
+                query = dict(parse_qs(callback.query, keep_blank_values=True))
+                for key, value in (callback_changes or {}).items():
+                    if value is None:
+                        query.pop(key, None)
+                    else:
+                        query[key] = [value]
+                httpx.get(
+                    callback._replace(query=urlencode(query, doseq=True)).geturl()
+                )
                 break
             time.sleep(0.05)
         returncode = proc.wait(timeout=10)
@@ -690,6 +703,42 @@ def test_reference_client_reports_oauth_errors(language, issuer, tmp_path):
     assert (
         "HTTP 400: invalid_grant (Authorization code is invalid or expired)" in output
     )
+
+
+@pytest.mark.parametrize("advertised", [True, False])
+@pytest.mark.parametrize("callback_issuer", [None, "", "https://wrong-issuer.example"])
+@pytest.mark.parametrize("scopes", ["notes:read", "unknown:scope"])
+def test_reference_client_validates_callback_issuer(
+    language, issuer, tmp_path, monkeypatch, advertised, callback_issuer, scopes
+):
+    monkeypatch.setattr(issuer, "iss_supported", advertised)
+    exchanges_before = len(issuer.exchanges)
+    code, output = run_login(
+        language, issuer, tmp_path, "test-public", scopes, {"iss": callback_issuer}
+    )
+    if callback_issuer is None and not advertised:
+        # RFC 9207 permits omission when support was not advertised.
+        if scopes == "unknown:scope":
+            assert code != 0
+            assert "authorization denied: invalid_scope" in output
+            assert len(issuer.exchanges) == exchanges_before
+        else:
+            assert code == 0
+            assert "Saved access token" in output
+            assert len(issuer.exchanges) == exchanges_before + 1
+        return
+    assert code != 0
+    expected = (
+        "callback missing issuer"
+        if callback_issuer is None
+        else "callback issuer mismatch"
+    )
+    assert expected in output
+    assert "authorization denied" not in output
+    assert "Scope is not allowed for this client" not in output
+    assert "Saved access token" not in output
+    assert not list(tmp_path.glob("*.json"))
+    assert len(issuer.exchanges) == exchanges_before
 
 
 def test_gateway_config_and_python_host(tmp_path, monkeypatch):

@@ -78,7 +78,7 @@ def login(args):
 
         def do_GET(self):
             u = urlsplit(self.path)
-            query = parse_qs(u.query)
+            query = parse_qs(u.query, keep_blank_values=True)
             if u.path != "/callback" or not secrets.compare_digest(
                 query.get("state", [""])[0], state
             ):
@@ -119,11 +119,7 @@ def login(args):
         server.server_close()
     if not result:
         raise ValueError("login timed out")
-    if "error" in result or not result.get("code"):
-        raise ValueError(
-            "authorization denied" + describe(result.get("error"), result.get("error_description"))
-        )
-    # RFC 9207: compare iss exactly; reject a missing iss when the server advertises it.
+    # RFC 9207: validate issuer before handling success or error responses.
     if (
         metadata.get("authorization_response_iss_parameter_supported") is True
         and "iss" not in result
@@ -131,6 +127,10 @@ def login(args):
         raise ValueError("callback missing issuer")
     if "iss" in result and result["iss"] != args.issuer:
         raise ValueError("callback issuer mismatch")
+    if "error" in result or not result.get("code"):
+        raise ValueError(
+            "authorization denied" + describe(result.get("error"), result.get("error_description"))
+        )
     with httpx.Client(timeout=10, follow_redirects=False) as client:
         response = client.post(
             metadata["token_endpoint"],
