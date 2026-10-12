@@ -36,6 +36,16 @@ codex
 
 ## Lab 03 起：預先註冊的 public Client
 
+先結束正在執行的 AI CLI 互動工作階段，再移除 Lab 01 本次新增的 `workshop-open` entry。只執行所選 CLI 的一行；若當時使用其他名稱，改成該名稱，未新增則略過。
+
+```bash
+claude mcp remove --scope local workshop-open
+# 或
+codex mcp remove workshop-open
+```
+
+`workshop-open` 與下方 `workshop-auth` 都指向 8000；移除舊 entry 可避免換關後重複探索、登入提示及同名工具混淆。完成下方設定後重新啟動 CLI，明確要求「呼叫 workshop-auth 的 whoami，再列出筆記」，並查看工具紀錄。
+
 先完成 [建立自己的 Client App](signet-client-app.md)，自行補齊 scope、resource 並確認 active 後啟動 Lab 03，從 repo 根目錄載入 `.env`。`OAUTH_CLIENT_ID` 優先使用自己的 public App ID；設定尚未完成時才用講師共用的備援 ID。public Client 不需要 secret；Lab 05 撤銷也沿用同一個 public Client ID。
 
 學員建立 App 時填入下列**精確** callback，建立後重新開啟編輯頁複核；共用備援 App 也使用相同設定：
@@ -89,7 +99,7 @@ codex -c 'mcp_oauth_callback_port=8766' -c 'mcp_oauth_callback_url="http://127.0
 
 ## 課後清理
 
-只刪除你實際建立的 workshop entries：
+只刪除你實際建立且尚未移除的 workshop entries；Lab 03 前已移除的 `workshop-open` 不需再刪：
 
 ```bash
 claude mcp remove --scope local workshop-open

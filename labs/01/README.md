@@ -32,7 +32,17 @@ curl http://localhost:8000/healthz
 
 依 [兩套 CLI 指引](../../docs/clients.md#lab-01未授權版本) 接上 Client。輸入：「請使用 workshop 的 whoami 工具，接著列出筆記。」不要把模型自行回答當成工具呼叫成功，要看工具紀錄。
 
-## 操作 B：為 Lab 3 預先準備：登入 Signet，建立自己的 Client App（約 6 分鐘）
+## 操作 B：複核課前建立的 Client App（約 6 分鐘）
+
+課前依 [Client App 教學](../../docs/signet-client-app.md) 完成步驟 1–3；課堂只需開啟自己的 App，複核以下三項：
+
+1. public、active、Authorization Code 已啟用，Device Flow 已關閉。
+2. 三個 callbacks、三個 resources、五個 scopes 都已保存，完整值見下方補做步驟。
+3. `.env` 的 `OAUTH_CLIENT_ID` 是自己的 App ID；修改後在 Client 終端重新載入。
+
+尚未建立 App 者請由助教協助；需要較久時先用講師提供的備援 public Client ID 跟上主課，仍使用自己的帳號登入。App 編輯及授權紀錄觀察可於課後完成。
+
+### 尚未完成課前準備時的補做步驟
 
 這裡登入的是 Signet 的應用程式管理介面，先建立 Lab 3 授權流程所需的 Client App。Lab 1 的 MCP 工具仍可匿名呼叫；Lab 2 只探索授權資訊，不需要 Client ID，也不需登入。直到 Lab 3 才會使用這個 Client ID 進行 OAuth 授權並取得 Token。
 
@@ -81,4 +91,4 @@ App 建立後立即啟用，不需排隊等講師核准。若現場畫面仍是 
 
 ## 驗收
 
-所選語言的 Server 正常回應，能呼叫三個工具；AI CLI 確實發出工具請求。另已用自己的帳號建立 public App，取得 Client ID 並確認設定完整、狀態 active。此關沒有授權，只綁定本機，不對外開放。
+所選語言的 Server 正常回應，能呼叫三個工具；AI CLI 確實發出工具請求。另已複核自己的 public App 設定完整且 active；尚未就緒者已取得備援 public Client ID，課後補完自己的 App。此關沒有授權，只綁定本機，不對外開放。

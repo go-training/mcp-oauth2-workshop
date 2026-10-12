@@ -60,6 +60,8 @@ Gateway 也增加一個需要部署與維運的服務，入口故障會影響經
 
 ## 操作
 
+**10 分鐘主課範圍：** 課前完成步驟 1；課堂做步驟 2–4 與練習 1，觀察成功呼叫及 read-only 寫入被拒。練習 2–3 為課後延伸，切換語言也不列入主課。未完成 Docker 課前準備者跟看講師示範；自行操作完成後仍須執行本頁清理步驟。
+
 ### 1. 課前確認環境並建置映像
 
 先停止 Lab 04 的 A/B Server（若曾啟動其他 Lab，也請先停止）。確認 `docker info` 與 `docker compose version` 成功；只有 Compose 指令存在、daemon 沒啟動仍不能操作。
@@ -131,7 +133,7 @@ docker compose --env-file .env -f labs/06/compose.yml --profile "$LAB_LANGUAGE" 
 
 ## 對照與練習：誰負責擋下請求？
 
-前面的操作已經用 `notes:read notes:write` Token 成功呼叫工具。接下來用兩個拒絕情境，確認 **Kong 驗入口，MCP backend 管 Tool 權限**。選 Go 或 Python 一條路線完成即可。
+前面的操作已經用 `notes:read notes:write` Token 成功呼叫工具。主課用練習 1 的寫入拒絕，延伸再做練習 2 的 audience 拒絕，確認 **Kong 驗入口，MCP backend 管 Tool 權限**。選 Go 或 Python 一條路線完成即可。
 
 ### 練習 1：能進入口，不代表能使用所有 Tool
 
@@ -150,7 +152,7 @@ docker compose --env-file .env -f labs/06/compose.yml --profile "$LAB_LANGUAGE" 
 
 **檢查點：** 同一顆 Token 可以查身分，卻不能寫筆記。這就是 MCP 服務仍需保留的業務權限判斷。
 
-### 練習 2：有效的 Token，也可能不是發給這個入口的
+### 練習 2：有效的 Token，也可能不是發給這個入口的（課後延伸）
 
 這次取得發給 `8000` 的 Token，刻意拿去呼叫 `9000` 的 Gateway。登入前確認自己的 Signet App 已允許這兩個 resource；不需重啟 Lab 04 的 Server。
 
@@ -165,7 +167,7 @@ docker compose --env-file .env -f labs/06/compose.yml --profile "$LAB_LANGUAGE" 
 
 **檢查點：** 說出練習 1 和練習 2 的差別：前者是「沒有寫入權限」，後者是「Token 發給了別的服務」。預期的 403／401 都會讓指令以非零狀態結束，這裡代表拒絕測試成功，不必為了讓指令成功而放寬權限。
 
-### 練習 3：確認 Client 只能從 Gateway 進入
+### 練習 3：確認 Client 只能從 Gateway 進入（課後延伸）
 
 查看目前容器與對外發布的 port：
 
@@ -190,13 +192,16 @@ docker compose --env-file .env -f labs/06/compose.yml --profile "$LAB_LANGUAGE" 
 
 ## 驗收與清理
 
-### 完成前，確認這五件事
+### 主課驗收
 
 - [ ] 已用選擇的 Go **或** Python backend，透過 `9000` 成功查詢身分與寫入筆記。
 - [ ] 只含 `notes:read` 的 Token 可以呼叫 `whoami`，但呼叫 `create_note` 收到 403。
+- [ ] 能用自己的話說明：「Kong 集中驗 Token 與入口權限，MCP 服務專注 Tool，並保留工具與資料權限檢查。」
+
+### 延伸驗收（選做）
+
 - [ ] 發給 `8000` 的 Token 呼叫 `9000` 收到 401。
 - [ ] 容器列表只有 Kong 發布主機 port，MCP backend 沒有主機 port 映射。
-- [ ] 能用自己的話說明：「Kong 集中驗 Token 與入口權限，MCP 服務專注 Tool，並保留工具與資料權限檢查。」
 
 ### 結果不符合預期時
 

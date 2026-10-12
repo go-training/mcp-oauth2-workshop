@@ -1,6 +1,6 @@
 # 學員操作：登入 Signet，建立自己的 Client App
 
-這是 Lab 01 的一部分，Go / Python 共用同一份步驟。主流程使用**你自己建立、設定完整且已啟用的 public Client App**；講師共用 App 只作為備援。
+Go / Python 共用同一份步驟。課前完成步驟 1–3 並將 Client ID 填入 `.env`；Lab 01 複核，步驟 4 的登入與呼叫留到 Lab 03，步驟 5 為延伸觀察。主流程使用**你自己建立、設定完整且已啟用的 public Client App**；講師共用 App 只作為備援。
 
 服務：[https://signet.wu-boy.com](https://signet.wu-boy.com/)。
 

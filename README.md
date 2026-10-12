@@ -27,7 +27,8 @@
 - [ ] 安裝 Claude Code 或 Codex CLI，並確認能登入、能對話
 - [ ] 能登入 [Signet](https://signet.wu-boy.com/)（使用現成服務，不需自行安裝）
 - [ ] 完成下方「快速開始」，並成功看到第一次呼叫（見 [預期結果](#預期結果)）
-- [ ] 先讀過 [建立自己的 Client App](docs/signet-client-app.md)，Lab 01 會用到
+- [ ] 依 [建立自己的 Client App](docs/signet-client-app.md) 完成步驟 1–3，取得 active 的 public Client ID，填入 `.env`；Lab 01 複核設定
+- [ ] （選做 Lab 04 帳號隔離）課前準備第二個可登入的練習帳號；沒有第二帳號可跟看講師示範，不影響主課驗收
 - [ ] （選做，要自己操作 Lab 06 才需要）依 [Lab 06 課前建置](labs/06/README.md#1-課前確認環境並建置映像) 在自己電腦 build 一次映像
 
 Lab 06 使用 Docker Compose v2 以上與 Python 3 設定產生器。Kong 與 backend 映像沒有預先發佈，要自行操作的學員需安裝並啟動 Docker Engine／Docker Desktop（含 Compose），並在**課前於自己電腦完成一次 build**，現場不應依賴網路建置；不操作的學員可跟看講師展示。
@@ -48,7 +49,7 @@ chmod 600 .env
 | 變數                     | 怎麼填                                                                                               |
 | ------------------------ | ---------------------------------------------------------------------------------------------------- |
 | `SIGNET_ISSUER`          | **保持預設** `https://signet.wu-boy.com`（結尾不要加斜線）                                           |
-| `OAUTH_CLIENT_ID`        | 填入你自己的 Client App ID（Lab 01 建立並確認 active 後取得）；設定尚未完成時可先用講師提供的備援 ID |
+| `OAUTH_CLIENT_ID`        | 填入你自己的 Client App ID（課前建立並確認 active 後取得）；設定尚未完成時可先用講師提供的備援 ID |
 | `GATEWAY_SHARED_SECRET`  | 先留空，Lab 06 才使用                                                                                |
 
 > **每開一個新終端都要重新載入 `.env`**，否則 Lab 會讀不到設定：
@@ -99,7 +100,7 @@ uv sync --project python --frozen
 
 | Lab                     | 你要做什麼                                                        | 完成的標準                                                          | 時間  |
 | ----------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------- | ----- |
-| [01](labs/01/README.md) | 呼叫沒有授權的 MCP；登入 Signet、建立自己的 public Client App     | 工具呼叫成功（因為沒有保護）；App active 且設定完整                 | 10 分 |
+| [01](labs/01/README.md) | 呼叫沒有授權的 MCP；複核課前建立的 public Client App     | 工具呼叫成功（因為沒有保護）；App active 且設定完整（或備援 ID 就緒） | 10 分 |
 | [02](labs/02/README.md) | 從 401 一路追到 Protected Resource Metadata，再到 Signet metadata | 能說出「Client 怎麼知道要去哪裡登入」                               | 15 分 |
 | [03](labs/03/README.md) | PKCE 登入，並看 Server 如何驗 Token                               | 登入後呼叫成功；知道驗了簽章、issuer、audience、expiry、access type | 25 分 |
 | [04](labs/04/README.md) | 觀察 scope 與 resource 隔離                                       | 缺少寫入權限被擋；A 的 Token 打不進 B                               | 20 分 |
@@ -107,11 +108,13 @@ uv sync --project python --frozen
 
 主課實作共 80 分鐘，另留 5 分鐘排錯緩衝與最後 5 分鐘 Q&A。
 
+Lab 04 的第二帳號隔離為選做；Lab 06 主課只做啟動／入口檢查、成功呼叫與 read-only 寫入拒絕，跨 audience 與網路邊界檢查留作延伸。未完成 Docker 課前準備者跟看講師示範。
+
 課後進階選修：[Lab 05：撤銷同一顆 Token](labs/05/README.md)，沿用既有 public Client 練習撤銷，不需 secret 或額外 App，不列入主課驗收。
 
 Token 撤銷後，本地驗 JWT 的 Server 不一定立即知道；需要即時撤銷時，再進一步研究 introspection。
 
-**關於你的 Client App**：Signet 可自行填入 notes scopes 與 allowed resources，註冊頁明示立即啟用。Lab 01 建立後務必重新開啟詳情／編輯頁複核，Lab 03 使用自己的 ID。若現場顯示 pending 或設定有問題，請助教協助，必要時使用備援 ID。
+**關於你的 Client App**：Signet 可自行填入 notes scopes 與 allowed resources，註冊頁明示立即啟用。課前建立後，Lab 01 務必重新開啟詳情／編輯頁複核，Lab 03 使用自己的 ID。若現場顯示 pending 或設定有問題，請助教協助，必要時使用備援 ID。
 
 ## 先備概念速查
 
