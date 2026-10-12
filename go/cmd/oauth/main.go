@@ -58,11 +58,30 @@ func postForm(endpoint string, form url.Values) (map[string]any, error) {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("upstream HTTP %d", resp.StatusCode)
+		return nil, oauthError(resp)
 	}
 	var m map[string]any
 	e = json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&m)
 	return m, e
+}
+
+// oauthError keeps the RFC 6749 error code and description; they explain most setup mistakes.
+func oauthError(resp *http.Response) error {
+	var body struct {
+		Error       string `json:"error"`
+		Description string `json:"error_description"`
+	}
+	json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&body)
+	return fmt.Errorf("upstream HTTP %d%s", resp.StatusCode, describe(body.Error, body.Description))
+}
+func describe(code, description string) string {
+	if code == "" {
+		return ""
+	}
+	if description != "" {
+		return ": " + code + " (" + description + ")"
+	}
+	return ": " + code
 }
 func login(issuer, resource, id, scope, path string, port int) error {
 	if e := workshop.ValidateResource(resource); e != nil {
@@ -70,6 +89,9 @@ func login(issuer, resource, id, scope, path string, port int) error {
 	}
 	if id == "" {
 		return errors.New("set OAUTH_CLIENT_ID to a pre-registered public client ID")
+	}
+	if strings.HasPrefix(id, "replace-with-") {
+		return errors.New("OAUTH_CLIENT_ID is still the placeholder; set your Signet Client ID in .env and reload it")
 	}
 	if _, e := os.Stat(path); e == nil {
 		return errors.New("token file exists; select a new -token-file")
@@ -124,7 +146,7 @@ func login(issuer, resource, id, scope, path string, port int) error {
 		return errors.New("login timed out")
 	}
 	if callback.Get("error") != "" || callback.Get("code") == "" {
-		return errors.New("authorization denied")
+		return errors.New("authorization denied" + describe(callback.Get("error"), callback.Get("error_description")))
 	}
 	// RFC 9207: compare iss exactly; reject a missing iss when the server advertises it.
 	if supported, _ := m["authorization_response_iss_parameter_supported"].(bool); supported && !callback.Has("iss") {
@@ -185,7 +207,9 @@ func call(resource, path, tool, text string, cross bool) error {
 		return errors.New("negative audience exercise is limited to local workshop servers")
 	}
 	t, e := load(path)
-	if e != nil && !os.IsNotExist(e) {
+	if os.IsNotExist(e) {
+		fmt.Fprintf(os.Stderr, "note: %s not found; calling without Authorization\n", path)
+	} else if e != nil {
 		return e
 	}
 	if t.AccessToken != "" && t.Resource != resource && !cross {
@@ -277,10 +301,11 @@ func main() {
 					var resp *http.Response
 					resp, e = client.PostForm(endpoint, url.Values{"client_id": {*id}, "token": {t.AccessToken}, "token_type_hint": {"access_token"}})
 					if e == nil {
-						resp.Body.Close()
 						if resp.StatusCode != 200 {
-							e = fmt.Errorf("revocation HTTP %d", resp.StatusCode)
-						} else {
+							e = fmt.Errorf("revocation failed: %w", oauthError(resp))
+						}
+						resp.Body.Close()
+						if e == nil {
 							fmt.Println("Revocation accepted. Offline JWT verification may still accept this token until expiry.")
 						}
 					}

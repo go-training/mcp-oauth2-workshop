@@ -4,7 +4,7 @@
 
 服務：[https://signet.wu-boy.com](https://signet.wu-boy.com/)。
 
-> 2026-10-11 已核對 Signet `v1.6.0-2-gc4d3d86`：註冊頁顯示新 App 立即啟用，提供自訂 scopes 與允許的資源。此次使用既有管理員帳號的前台介面；一般學員身分仍需課前複核。若部署改為審核制，以畫面狀態為準。
+> 2026-10-11 已核對 Signet `v1.6.0-2-gc4d3d86`：註冊頁顯示新 App 立即啟用，提供自訂 scopes 與允許的資源。此次使用既有管理員帳號的前台介面；一般學員身分仍需課前複核。2026-10-12 線上版本已為 `v1.8.0`，畫面若與本文不同，以實際畫面為準。若部署改為審核制，以畫面狀態為準。
 
 ## 先理解三件事
 
@@ -68,7 +68,7 @@ http://localhost:9000/mcp
 Allowed Resources 必須包含完整的 `http://localhost:PORT/mcp`，不要只填 `8000/mcp`，也不要加結尾斜線或把 `localhost` 換成 `127.0.0.1`。這三筆分別對應主 Server、Lab 04 的 Server B、Lab 06 的 Gateway，必須與 Client 送出的 resource 完全一致。
 
 3. 確認三個 callbacks、三個 resources、五個 scopes 都已形成標籤，才按「註冊應用程式」。留在輸入框的文字不等於已加入。
-4. 新版註冊頁說明建立後立即啟用；提交後仍要以詳情實際顯示的狀態為準。若為 pending，請講師處理，先完成 Lab 02。
+4. 新版註冊頁說明建立後立即啟用；提交後仍要以詳情實際顯示的狀態為準。若仍為 pending，請找助教確認，先完成 Lab 02，必要時改用備援 ID。
 
 **檢查點 B：** 取得 Client ID，public App 沒有 secret，狀態為 active／啟用。
 
@@ -149,7 +149,7 @@ AI CLI 備援用新名稱 `workshop-fallback`，將 [Client 指南](clients.md) 
 
 | 現象                       | 處理                                                                                   |
 | -------------------------- | -------------------------------------------------------------------------------------- |
-| pending 還不能登入         | 請講師完成設定與核准，先繼續 Lab 02                                                    |
+| pending 還不能登入         | 找助教確認，先繼續 Lab 02，必要時改用備援 ID                                           |
 | notes scopes 不在標籤列    | 查看「已儲存的自訂與管理 scopes」；新 scope 在輸入框按 Enter 新增                      |
 | 找不到 Allowed Resources   | 新版在 callbacks 下方；確認頁面版本並請助教協助                                        |
 | 建立時要求 redirect URI    | 勾選 Authorization Code，新增三個 callback 標籤                                        |

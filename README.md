@@ -14,7 +14,7 @@
 
 | 選擇     | 選項                            | 備註                                   |
 | -------- | ------------------------------- | -------------------------------------- |
-| 語言     | Go **或** Python                | 兩條路線功能完全相同，選一種就好       |
+| 語言     | Go **或** Python                | 兩條路線教學行為等價，選一種就好       |
 | AI CLI   | Claude Code **或** Codex CLI    | 需要自己的帳號；範例不需要模型 API key |
 | 作業系統 | macOS / Linux / Windows（WSL2） | Windows 請在 WSL2 內操作               |
 
@@ -23,13 +23,14 @@
 請在 **10/14 前** 完成，現場 30 分鐘只留給排除狀況：
 
 - [ ] 安裝 Git、curl、編輯器
-- [ ] 安裝 **Go 1.26 或 1.27**，或 **Python 3.12 + [uv](https://docs.astral.sh/uv/)**
+- [ ] 安裝 **Go 1.26 或 1.27**，或 **Python 3.12（建議；3.11 以上可用）+ [uv](https://docs.astral.sh/uv/)**
 - [ ] 安裝 Claude Code 或 Codex CLI，並確認能登入、能對話
 - [ ] 能登入 [Signet](https://signet.wu-boy.com/)（講師已部署，你不用自己安裝）
 - [ ] 完成下方「快速開始」，並成功看到第一次呼叫（見 [預期結果](#預期結果)）
 - [ ] 先讀過 [建立自己的 Client App](docs/signet-client-app.md)，Lab 01 會用到
+- [ ] （選做，要自己操作 Lab 06 才需要）依 [Lab 06 課前建置](labs/06/README.md#1-課前確認環境並建置映像) 在自己電腦 build 一次映像
 
-Lab 06 使用 Docker Compose v2 以上與 Python 3 設定產生器，映像由講師預先準備，學員若要自行操作，仍需安裝並啟動 Docker Engine／Docker Desktop（含 Compose）；不操作的學員可跟看講師展示。映像請課前下載，現場不應依賴網路建置。
+Lab 06 使用 Docker Compose v2 以上與 Python 3 設定產生器。Kong 與 backend 映像沒有預先發佈，要自行操作的學員需安裝並啟動 Docker Engine／Docker Desktop（含 Compose），並在**課前於自己電腦完成一次 build**，現場不應依賴網路建置；不操作的學員可跟看講師展示。
 
 ## 快速開始
 
@@ -57,7 +58,7 @@ chmod 600 .env
 > set -a; source .env; set +a
 > ```
 >
-> 已經在 shell 裡設定的環境變數不會被 scripts 覆寫。
+> `scripts/` 不會自動讀取 `.env`，所以每個終端都要自己載入。
 
 ### 2. 安裝依賴（選一種語言）
 

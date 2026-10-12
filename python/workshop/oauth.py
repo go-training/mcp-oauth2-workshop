@@ -10,6 +10,7 @@ import hashlib
 import json
 import os
 import secrets
+import sys
 import time
 import webbrowser
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -31,15 +32,39 @@ def save_token(path, data):
         json.dump(data, out)
 
 
+def describe(code, description):
+    if not code:
+        return ""
+    return f": {code} ({description})" if description else f": {code}"
+
+
+def oauth_error(prefix, response):
+    """Keep the RFC 6749 error code and description; they explain most setup mistakes."""
+    try:
+        body = response.json()
+    except ValueError:
+        body = {}
+    if not isinstance(body, dict):
+        body = {}
+    return f"{prefix}: HTTP {response.status_code}" + describe(
+        body.get("error"), body.get("error_description")
+    )
+
+
 def login(args):
     validate_resource(args.resource)
+    if not args.client_id:
+        raise ValueError("set OAUTH_CLIENT_ID to your pre-registered PUBLIC client ID")
+    if args.client_id.startswith("replace-with-"):
+        raise ValueError(
+            "OAUTH_CLIENT_ID is still the placeholder; set your Signet Client ID in .env "
+            "and reload it"
+        )
+    if args.token_file.exists():
+        raise ValueError("token file already exists; choose a new --token-file")
     metadata = discover(args.issuer)
     if "S256" not in metadata.get("code_challenge_methods_supported", []):
         raise ValueError("authorization server does not advertise PKCE S256")
-    if not args.client_id:
-        raise ValueError("set OAUTH_CLIENT_ID to your pre-registered PUBLIC client ID")
-    if args.token_file.exists():
-        raise ValueError("token file already exists; choose a new --token-file")
     verifier = secrets.token_urlsafe(48)
     challenge = (
         base64.urlsafe_b64encode(hashlib.sha256(verifier.encode()).digest()).rstrip(b"=").decode()
@@ -92,8 +117,12 @@ def login(args):
             server.handle_request()
     finally:
         server.server_close()
-    if not result or "error" in result or not result.get("code"):
-        raise ValueError("authorization denied or timed out")
+    if not result:
+        raise ValueError("login timed out")
+    if "error" in result or not result.get("code"):
+        raise ValueError(
+            "authorization denied" + describe(result.get("error"), result.get("error_description"))
+        )
     # RFC 9207: compare iss exactly; reject a missing iss when the server advertises it.
     if (
         metadata.get("authorization_response_iss_parameter_supported") is True
@@ -115,7 +144,7 @@ def login(args):
             },
         )
         if response.status_code != 200:
-            raise ValueError(f"token exchange failed: HTTP {response.status_code}")
+            raise ValueError(oauth_error("token exchange failed", response))
         token = response.json()
     if (
         not isinstance(token.get("access_token"), str)
@@ -147,6 +176,8 @@ def call(args):
         if stored["resource"] != args.resource and not args.allow_cross_resource:
             raise ValueError("token resource differs; use --allow-cross-resource only for Lab 04")
         headers["Authorization"] = "Bearer " + stored["access_token"]
+    else:
+        print(f"note: {args.token_file} not found; calling without Authorization", file=sys.stderr)
     with httpx.Client(timeout=10, follow_redirects=False) as client:
         response = client.post(
             args.resource,
@@ -196,7 +227,8 @@ def revoke(args):
                 "token_type_hint": "access_token",
             },
         )
-        response.raise_for_status()
+        if response.status_code != 200:
+            raise ValueError(oauth_error("revocation failed", response))
     print("Revocation accepted. Offline JWT verification may still accept this token until expiry.")
 
 

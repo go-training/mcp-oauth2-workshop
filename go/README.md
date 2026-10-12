@@ -260,21 +260,21 @@ sequenceDiagram
 
 詳細邏輯：
 
-1. 驗證 resource、Client ID，且拒絕覆寫已存在的 Token 檔。
+1. 驗證 resource、Client ID（仍是 `.env.example` 的 `replace-with-` placeholder 時直接失敗），且拒絕覆寫已存在的 Token 檔。
 2. `Discover` 取得 authorization／token endpoint；metadata 必須宣告支援 PKCE `S256`。
 3. `random()` 使用 48 bytes 的密碼學亂數，分別產生 verifier 與 state。challenge 為 verifier 的 SHA-256，再做無 padding 的 URL-safe Base64。
 4. callback listener 只綁 `127.0.0.1`。port 設成 `0` 時由系統選 port，主要供測試；實際 App 的 redirect 設定仍需接受該 URI。
 5. 印出登入 URL，由使用者手動開啟。參數包含 `response_type=code`、Client ID、redirect URI、scope、state、challenge、`code_challenge_method=S256` 與 resource。
 6. callback path 與 state 必須符合；state 使用 constant-time comparison。等待上限 180 秒。網頁顯示 callback received 只代表收到回呼，換 Token 是否成功仍以終端結果為準。
-7. 回呼有 error 或缺少 code 時失敗。若 metadata 宣告支援 authorization response `iss`，回呼必須含此欄位；只要收到 `iss`，就必須與設定完全相等。
-8. 用 code、verifier、Client ID、相同 redirect URI 與 resource 換 Token。此 public Client 不傳 Client secret。
+7. 回呼有 error 或缺少 code 時失敗，錯誤訊息附上 Signet 回傳的 `error` 與 `error_description`。若 metadata 宣告支援 authorization response `iss`，回呼必須含此欄位；只要收到 `iss`，就必須與設定完全相等。
+8. 用 code、verifier、Client ID、相同 redirect URI 與 resource 換 Token。此 public Client 不傳 Client secret。非 200 時由 `oauthError` 解析 RFC 6749 錯誤 JSON，印出 HTTP 狀態、`error` 與 `error_description`。
 9. 要求非空 access Token 與 Bearer token type，建立父目錄（新目錄 mode 0700）及 Token 檔（mode 0600、`O_EXCL` 防覆寫）。既有父目錄的權限不會自動修正。
 
 Token 檔只包含 `access_token`、`issuer`、`resource`，不保存 refresh Token，也沒有加密。登入階段不自行驗證 JWT claims；使用 Token 時由 Resource Server 驗證。
 
 ### 8.3 `call`：resource 綁定與 MCP 請求
 
-`call()` 先驗證目的 URL，再讀取 Token 檔。檔案不存在時允許匿名呼叫，以支援 Lab 01；其他讀檔／JSON 錯誤會失敗。有 access Token 時，檔案記錄的 resource 必須與目的地完全相同，否則在發送前拒絕。
+`call()` 先驗證目的 URL，再讀取 Token 檔。檔案不存在時允許匿名呼叫，以支援 Lab 01，並在 stderr 提示未帶 Authorization，方便發現檔名打錯；其他讀檔／JSON 錯誤會失敗。有 access Token 時，檔案記錄的 resource 必須與目的地完全相同，否則在發送前拒絕。
 
 `--allow-cross-resource` 可略過這個 Client 端相等檢查，但只允許目標 hostname 為 `localhost` 或 `127.0.0.1`，且仍經 URL 驗證。它不會改寫 Token 的 audience，也不會讓 Server 放寬 JWT 檢查。
 
@@ -290,7 +290,7 @@ Token 檔只包含 `access_token`、`issuer`、`resource`，不保存 refresh To
 
 `metadata` 直接呼叫 `Discover`，將 issuer metadata 印成 JSON，方便排查端點設定。
 
-`revoke` 讀取 Token 檔，先比對檔案 issuer 與目前設定，再透過 Discovery 找到 revocation endpoint，POST public `client_id`、access Token 與 token type hint。此範例不傳 Client secret，要求回應 HTTP 200，但不解析 response body。
+`revoke` 讀取 Token 檔，先比對檔案 issuer 與目前設定，再透過 Discovery 找到 revocation endpoint，POST public `client_id`、access Token 與 token type hint。此範例不傳 Client secret，要求回應 HTTP 200；失敗時以 `oauthError` 印出 Signet 回傳的 `error`／`error_description`。
 
 撤銷成功後刻意保留檔案，方便用**同一顆 Token** 重試 Lab 05。撤銷不代表刪除本機檔案，也不代表所有只做離線 JWT 驗證的 Server 都會即時拒絕它。
 

@@ -290,14 +290,14 @@ sequenceDiagram
 
 執行細節：
 
-1. 驗證 resource，Discovery 後確認 metadata 宣告 `S256`，檢查 Client ID 與 Token 檔不得已存在。
+1. 驗證 resource，檢查 Client ID（仍是 `replace-with-` placeholder 時直接失敗）與 Token 檔不得已存在，再 Discovery 確認 metadata 宣告 `S256`。
 2. `secrets.token_urlsafe(48)` 產生 verifier；SHA-256 後以無 padding 的 URL-safe Base64 產生 challenge。state 另外使用 `secrets.token_urlsafe(32)`。
 3. 以標準函式庫 `HTTPServer` 綁定 `127.0.0.1`。預設 callback 是 `http://127.0.0.1:8765/callback`；port `0` 可讓系統挑選，供測試使用，實際 App 仍須接受該 redirect URI。
 4. 組合 authorization URL，包含 code response type、Client ID、redirect URI、scope、state、challenge、S256 與 resource。印出後，除非傳 `--no-browser`，否則嘗試 `webbrowser.open`。
 5. callback 只實作 GET，檢查 path 與 state，後者使用 `secrets.compare_digest`。關閉預設 callback access log，避免記錄 code 與 query string。
 6. 以 `handle_request()` 迴圈等候回呼，設定 1 秒 server timeout 與 180 秒 deadline；此 deadline 是迴圈條件，不是對每條 callback 連線的完整硬性 timeout。
-7. 回呼有 error、缺少 code 或未收到結果時失敗。若 metadata 宣告支援 authorization response issuer，要求 `iss`；收到時必須與設定完全相等。
-8. POST code、verifier、Client ID、相同 redirect URI 與 resource 換 Token，要求 HTTP 200。public Client 不帶 Client secret。
+7. 未收到結果時回報 timeout；回呼有 error 或缺少 code 時失敗，訊息附上 `error` 與 `error_description`。若 metadata 宣告支援 authorization response issuer，要求 `iss`；收到時必須與設定完全相等。
+8. POST code、verifier、Client ID、相同 redirect URI 與 resource 換 Token，要求 HTTP 200，否則由 `oauth_error` 印出 HTTP 狀態、`error` 與 `error_description`。public Client 不帶 Client secret。
 9. 檢查 access Token 為字串、token type 為 Bearer，再交給 `save_token`。此版本未額外拒絕空的 access Token 字串，也未在登入階段自行驗 JWT。
 
 callback 網頁顯示收到回呼，不代表後續 exchange 已成功，應以終端結果為準。Token response 亦不是完整 schema 驗證，不要將教學 Client 視為能處理所有異常格式的通用函式庫。
@@ -310,7 +310,7 @@ JSON 只存 `access_token`、`issuer`、`resource`，不存 refresh Token。這�
 
 ### 7.4 `call(args)`：resource 綁定與 JSON-RPC
 
-先驗證目的 URL，再處理 Token 檔。檔案不存在時匿名呼叫，供 Lab 01 使用；存在時讀取 JSON，要求所記錄的 resource 與目標完全相等，再加入 Authorization header。
+先驗證目的 URL，再處理 Token 檔。檔案不存在時匿名呼叫，供 Lab 01 使用，並在 stderr 提示未帶 Authorization；存在時讀取 JSON，要求所記錄的 resource 與目標完全相等，再加入 Authorization header。
 
 `--allow-cross-resource` 只略過 Client 端的 resource 相等檢查，目標 hostname 仍限 `localhost` 或 `127.0.0.1`，且仍經 URL 驗證。它不改寫 Token，也不放寬 Server 的 audience 判斷。
 
@@ -326,7 +326,7 @@ Client 使用常數 `PROTOCOL_VERSION = "2026-07-28"`，目前直接送 `tools/c
 
 ### 7.5 `revoke(args)` 與 `metadata`
 
-`revoke` 讀取 Token 檔並比對 issuer，再透過 Discovery 找到 revocation endpoint，POST Token 與 access token hint。它不傳 Client secret，以 `raise_for_status()` 判斷 HTTP 成功，不解析 response body。
+`revoke` 讀取 Token 檔並比對 issuer，再透過 Discovery 找到 revocation endpoint，POST Token 與 access token hint。它不傳 Client secret，非 200 時以 `oauth_error` 印出 HTTP 狀態與 Signet 回傳的 `error`／`error_description`。
 
 成功後保留檔案，方便用**同一顆 Token** 重試 Lab 05。刪除檔案不是遠端撤銷，遠端撤銷也不代表只做離線 JWT 驗證的服務會立刻拒絕。
 
