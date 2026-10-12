@@ -111,14 +111,17 @@ def issuer():
                 assert q["code_challenge_method"] == "S256"
                 code = str(uuid.uuid4())
                 fixture.codes[code] = q
+                callback = {"code": code, "state": q["state"], "iss": fixture.url}
+                if q["scope"] == "unknown:scope":
+                    callback = {
+                        "error": "invalid_scope",
+                        "error_description": "Scope is not allowed for this client",
+                        "state": q["state"],
+                        "iss": fixture.url,
+                    }
                 self.send_response(302)
                 self.send_header(
-                    "Location",
-                    q["redirect_uri"]
-                    + "?"
-                    + urlencode(
-                        {"code": code, "state": q["state"], "iss": fixture.url}
-                    ),
+                    "Location", q["redirect_uri"] + "?" + urlencode(callback)
                 )
                 self.end_headers()
             else:
@@ -134,7 +137,13 @@ def issuer():
             if self.path == "/revoke":
                 client_id = q.get("client_id")
                 if not client_id or fixture.token_clients.get(q["token"]) != client_id:
-                    return self.reply(400, {"error": "invalid_client"})
+                    return self.reply(
+                        400,
+                        {
+                            "error": "invalid_client",
+                            "error_description": "Client authentication failed",
+                        },
+                    )
                 fixture.revoked.add(q["token"])
                 self.reply(200, {})
             elif self.path == "/token":
@@ -151,8 +160,15 @@ def issuer():
                     or q["resource"] != original["resource"]
                     or q["redirect_uri"] != original["redirect_uri"]
                     or q["client_id"] != original["client_id"]
+                    or q["client_id"] == "expired-code"
                 ):
-                    return self.reply(400, {"error": "invalid_grant"})
+                    return self.reply(
+                        400,
+                        {
+                            "error": "invalid_grant",
+                            "error_description": "Authorization code is invalid or expired",
+                        },
+                    )
                 fixture.exchanges.append(q)
                 token = fixture.token(q["resource"], scope=original["scope"])
                 fixture.token_clients[token] = q["client_id"]
@@ -510,6 +526,10 @@ def test_reference_client_pkce_call_revoke(language, issuer, start, tmp_path):
             command("revoke", client_flag, client_id), env=env, capture_output=True
         )
         assert result.returncode != 0
+        if client_id:
+            assert b"invalid_client (Client authentication failed)" in (
+                result.stdout + result.stderr
+            )
         assert (
             subprocess.run(command("call"), env=env, capture_output=True).returncode
             == 0
@@ -596,9 +616,80 @@ def test_reference_client_reports_jsonrpc_error(language, tmp_path):
             timeout=10,
         )
         assert result.returncode != 0
+        assert b"not found; calling without Authorization" in result.stderr
     finally:
         server.shutdown()
         server.server_close()
+
+
+def run_login(language, issuer, tmp_path, client_id, scopes="notes:read"):
+    """Drive a login until the client exits; the fixture plays the browser."""
+    env = {
+        **os.environ,
+        "PYTHONPATH": str(ROOT / "python"),
+        "ALLOW_INSECURE_ISSUER": "1",
+    }
+    if language == "go":
+        command = [str(ROOT / ".build/oauth"), "-command", "login"]
+    else:
+        command = [str(PYTHON), "-m", "workshop.oauth", "login", "--no-browser"]
+    command += [
+        "--issuer",
+        issuer.url,
+        "--resource",
+        "http://localhost:8000/mcp",
+        "--client-id",
+        client_id,
+        "--scopes",
+        scopes,
+        "--callback-port",
+        "0",
+        "--token-file",
+        str(tmp_path / f"{language}-{client_id}-{scopes}.json"),
+    ]
+    proc = subprocess.Popen(
+        command, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
+    )
+    try:
+        lines = []
+        thread = threading.Thread(target=lambda: lines.extend(proc.stdout), daemon=True)
+        thread.start()
+        deadline = time.monotonic() + 15
+        while proc.poll() is None and time.monotonic() < deadline:
+            auth_url = next(
+                (line.strip() for line in lines if line.startswith("http")), None
+            )
+            if auth_url:
+                httpx.get(auth_url, follow_redirects=True)
+                break
+            time.sleep(0.05)
+        returncode = proc.wait(timeout=10)
+        thread.join(timeout=5)
+        return returncode, "".join(lines)
+    finally:
+        if proc.poll() is None:
+            proc.kill()
+            proc.wait()
+
+
+def test_reference_client_reports_oauth_errors(language, issuer, tmp_path):
+    code, output = run_login(language, issuer, tmp_path, "replace-with-your-client-id")
+    assert code != 0
+    assert "placeholder" in output
+    assert "Open this URL" not in output
+
+    code, output = run_login(language, issuer, tmp_path, "test-public", "unknown:scope")
+    assert code != 0
+    assert (
+        "authorization denied: invalid_scope (Scope is not allowed for this client)"
+        in output
+    )
+
+    code, output = run_login(language, issuer, tmp_path, "expired-code")
+    assert code != 0
+    assert (
+        "HTTP 400: invalid_grant (Authorization code is invalid or expired)" in output
+    )
 
 
 def test_gateway_config_and_python_host(tmp_path, monkeypatch):

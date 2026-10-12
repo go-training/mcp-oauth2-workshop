@@ -12,7 +12,7 @@ MCP Server / Kong 只取得公開 JWKS；簽章私鑰不得發給學員。
 
 ## 現場服務與新版學員流程（2026-10-11）
 
-新版 Signet `v1.6.0-2-gc4d3d86` 的前台註冊頁已提供自訂 scopes、Allowed Resources，並明示新 App 立即啟用。不要再安排所有學員等待管理員手動補欄位與核准。既有管理員身分已核對前台欄位；一般非管理員身分仍須課前複核。
+新版 Signet `v1.6.0-2-gc4d3d86` 的前台註冊頁已提供自訂 scopes、Allowed Resources，並明示新 App 立即啟用。不要再安排所有學員等待管理員手動補欄位與核准。既有管理員身分已核對前台欄位；一般非管理員身分仍須課前複核。2026-10-12 線上已升級為 `v1.8.0`，上述欄位核對是在舊版完成，課前需用一般帳號在 v1.8.0 重走一次建立 App → 登入。
 
 Metadata 的 issuer 是 `https://signet.wu-boy.com`，宣告 S256 與 resource indicators；真實 Token 的結果以 [驗證紀錄](validation.md) 最新一節為準。全域 `scopes_supported` 不能證明特定 App 已允許 notes scopes。
 
