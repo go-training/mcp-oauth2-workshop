@@ -176,7 +176,7 @@ Issue: Invalid input (at tools.2.outputSchema.properties.audience)
 
 ### 問題 2：Signet 註冊頁與教材的 scope 說明不一致
 
-部署 v1.6.0 的 `/apps/new` 已顯示自訂 scope 輸入、命名限制、保留前綴與「儲存後，非標準 scopes 僅能由管理員移除」提示。`docs/signet-client-app.md` 與 `docs/instructor.md` 仍說一般表單只能選標準 scopes。此次使用的是已登入管理員帳號的前台表單；一般非管理員的實際新增權限仍需另測，不能由本次畫面直接宣稱兩者相同。
+部署 v1.6.0 的 `/apps/new` 已顯示自訂 scope 輸入、命名限制、保留前綴與「儲存後，非標準 scopes 僅能由管理員移除」提示。當時的 Client App 教學仍說一般表單只能選標準 scopes。此次使用的是已登入管理員帳號的前台表單；一般非管理員的實際新增權限仍需另測，不能由本次畫面直接宣稱兩者相同。
 
 ### 問題 3：建立 App 時取消 Device Flow，編輯頁卻仍顯示啟用
 
@@ -229,7 +229,7 @@ MCP 傳輸層使用 2026-07-28（無 `initialize` 交握，Go go-sdk v1.8.0、Py
 
 | 項目                                     | 原因／完成條件                                                                            |
 | ---------------------------------------- | ----------------------------------------------------------------------------------------- |
-| 新的現場 Signet 端到端驗證               | 部署 URL 與公開 discovery 已確認；仍待 Client ID 與測試身分，依 instructor checklist 彩排 |
+| 新的現場 Signet 端到端驗證               | 部署 URL 與公開 discovery 已確認；仍待 Client ID 與測試身分 |
 | 學員自助 Client App UI 完整流程          | 瀏覽器控制服務不可用，尚未登入網站驗證建立、核准、自己的 ID 登入；未建立或修改現場 App    |
 | Claude Code / Codex 瀏覽器登入與 step-up | 目前核對文件與旗標，沒有使用真實課程身分完成互動登入                                      |
 | Kong 容器實際代理 Go / Python            | 本機 Docker daemon 未啟動；Compose 設定可檢查，但不是容器 runtime 成功證明                |
@@ -248,5 +248,3 @@ MCP 傳輸層使用 2026-07-28（無 `initialize` 交握，Go go-sdk v1.8.0、Py
 ```bash
 ./scripts/check.sh
 ```
-
-Signet 服務檢查與課前設定見 [講師手冊](instructor.md)。

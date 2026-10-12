@@ -207,7 +207,7 @@ docker compose --env-file .env -f labs/06/compose.yml --profile "$LAB_LANGUAGE" 
 docker compose --env-file .env -f labs/06/compose.yml --profile "$LAB_LANGUAGE" logs --tail 50
 ```
 
-容器未啟動或連線失敗時，先修正啟動問題；有 HTTP 回應後，再核對使用的 Token 檔案、resource 與 scopes。找助教時提供失敗步驟和錯誤訊息，不要貼 Token、`.env` 或產生的 `kong.yml`。講師彩排結果另見 [驗證紀錄](../../docs/validation.md)。
+容器未啟動或連線失敗時，先修正啟動問題；有 HTTP 回應後，再核對使用的 Token 檔案、resource 與 scopes。找助教時提供失敗步驟和錯誤訊息，不要貼 Token、`.env` 或產生的 `kong.yml`。
 
 ### 練習完成後，停止容器
 

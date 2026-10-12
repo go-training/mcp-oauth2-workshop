@@ -25,7 +25,7 @@
 - [ ] 安裝 Git、curl、編輯器
 - [ ] 安裝 **Go 1.26 或 1.27**，或 **Python 3.12（建議；3.11 以上可用）+ [uv](https://docs.astral.sh/uv/)**
 - [ ] 安裝 Claude Code 或 Codex CLI，並確認能登入、能對話
-- [ ] 能登入 [Signet](https://signet.wu-boy.com/)（講師已部署，你不用自己安裝）
+- [ ] 能登入 [Signet](https://signet.wu-boy.com/)（使用現成服務，不需自行安裝）
 - [ ] 完成下方「快速開始」，並成功看到第一次呼叫（見 [預期結果](#預期結果)）
 - [ ] 先讀過 [建立自己的 Client App](docs/signet-client-app.md)，Lab 01 會用到
 - [ ] （選做，要自己操作 Lab 06 才需要）依 [Lab 06 課前建置](labs/06/README.md#1-課前確認環境並建置映像) 在自己電腦 build 一次映像
@@ -109,7 +109,7 @@ uv sync --project python --frozen
 
 課後進階選修：[Lab 05：撤銷同一顆 Token](labs/05/README.md)，沿用既有 public Client 練習撤銷，不需 secret 或額外 App，不列入主課驗收。
 
-課堂只需提醒：Token 撤銷後，本地驗 JWT 的 Server 不一定立即知道；需要即時撤銷時，再進一步研究 introspection。
+Token 撤銷後，本地驗 JWT 的 Server 不一定立即知道；需要即時撤銷時，再進一步研究 introspection。
 
 **關於你的 Client App**：新版 Signet 可自行填入 notes scopes 與 allowed resources，註冊頁明示立即啟用。Lab 01 建立後務必重新開啟詳情／編輯頁複核，Lab 03 使用自己的 ID。若現場顯示 pending 或設定有問題，請助教協助，必要時使用備援 ID。
 
@@ -131,7 +131,7 @@ uv sync --project python --frozen
 
 ```mermaid
 flowchart TD
-    C[Claude Code / Codex CLI] -->|登入、同意授權、PKCE| S[講師預先部署的 Signet HTTPS]
+    C[Claude Code / Codex CLI] -->|登入、同意授權、PKCE| S[Signet HTTPS]
     C -->|主課 Labs 01–04：HTTP MCP| M[筆電上的 Go 或 Python MCP Server]
     M -->|metadata / JWKS| S
     C -->|Lab 06| K[Kong + mcp-oauth2 plugin]
@@ -185,7 +185,6 @@ Server 提供三個工具：`whoami`、`list_notes`、`create_note`。筆記只�
 - [Claude Code / Codex CLI 設定](docs/clients.md)
 - [故障排除](docs/troubleshooting.md)
 - [驗證紀錄](docs/validation.md)：真實 Signet、兩套 AI CLI 登入與 Kong 容器的彩排狀態。本機測試通過不等於現場整合已完成。
-- [講師：Signet 與現場準備](docs/instructor.md)（講師用）
 
 想確認本機環境沒問題，可以跑自動測試（不需要現場帳密）：
 

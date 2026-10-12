@@ -157,7 +157,3 @@ AI CLI 備援用新名稱 `workshop-fallback`，將 [Client 指南](clients.md) 
 | active 後仍 invalid_target | 回編輯頁核對三個完整 resource URL，不要跳過 audience 驗證                              |
 | 同意畫面是講師的 App 名稱  | CLI 還在用備援 ID；新增自己的 entry 再登入                                             |
 | 修改 ID 後 whoami 一樣     | 正常，subject 代表登入使用者，不是 Client ID；以同意畫面的 App 名稱及 App 授權紀錄確認 |
-
-## 現場彩排
-
-現場一般使用者畫面與完整自助建立流程仍須依 [彩排清單](instructor.md) 驗證。學員不需要存取 Signet 原始碼。
