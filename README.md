@@ -23,6 +23,7 @@
 請在 **10/14 前** 完成，現場 30 分鐘只留給排除狀況：
 
 - [ ] 安裝 Git、curl、編輯器
+- [ ] （選用）安裝 [fx](https://fx.wtf/) 方便瀏覽 JSON 輸出（`brew install fx`，其他平台見 [安裝說明](https://fx.wtf/install)）
 - [ ] 安裝 **Go 1.26 或 1.27**，或 **Python 3.12（建議；3.11 以上可用）+ [uv](https://docs.astral.sh/uv/)**
 - [ ] 安裝 Claude Code 或 Codex CLI，並確認能登入、能對話
 - [ ] 能登入 [Signet](https://signet.wu-boy.com/)（使用現成服務，不需自行安裝）
@@ -91,6 +92,15 @@ uv sync --project python --frozen
 ### 預期結果
 
 終端 B 成功呼叫並印出 MCP 工具回應，代表環境就緒。如果失敗，先看 [故障排除](docs/troubleshooting.md)（常見原因：忘了載入 `.env`、port 8000 被占用、沒有在 repo 根目錄執行）。
+
+> **提示：用 fx 看 JSON。** `metadata` 指令輸出的是 JSON（Go 版為單行），可以 pipe 給 [fx](https://fx.wtf/) 互動瀏覽、展開與搜尋：
+>
+> ```bash
+> ./scripts/oauth.sh go metadata | fx
+> # 只看某個欄位：./scripts/oauth.sh go metadata | fx .token_endpoint
+> ```
+>
+> `call` 的輸出前面帶有 HTTP status code 與 `WWW-Authenticate`，不是純 JSON，無法直接 pipe 給 fx。
 
 之後依 [Claude Code / Codex CLI 設定](docs/clients.md) 把 AI CLI 連上你的 Server，再從 Lab 01 開始。
 
