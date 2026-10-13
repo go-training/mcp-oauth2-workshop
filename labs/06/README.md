@@ -66,6 +66,16 @@ Gateway 也增加一個需要部署與維運的服務，入口故障會影響經
 
 先停止 Lab 04 的 A/B Server（若曾啟動其他 Lab，也請先停止）。確認 `docker info` 與 `docker compose version` 成功；只有 Compose 指令存在、daemon 沒啟動仍不能操作。
 
+如果 `docker compose version` 出現 `docker: unknown command: docker compose`（常見於 Homebrew 安裝 `docker` + `docker-compose` 搭配 Colima），代表 Compose 是以獨立指令安裝，Docker CLI 找不到 plugin。請在 `~/.docker/config.json` 加入 plugin 目錄（Intel Mac 改為 `/usr/local/lib/docker/cli-plugins`），再重新執行 `docker compose version`：
+
+```json
+{
+  "cliPluginsExtraDirs": ["/opt/homebrew/lib/docker/cli-plugins"]
+}
+```
+
+`config.json` 已有其他設定（例如 `auths`、`currentContext`）時請保留，只新增這個欄位。Buildx 可用 `brew install docker-buildx` 安裝，會放進同一個目錄。暫時無法修改設定時，也可把本頁指令中的 `docker compose` 改成 `docker-compose`。
+
 建置前也可用 `docker buildx version` 檢查 Buildx。如果出現 `Docker Compose requires buildx plugin to be installed`，請補齊 Docker 的 Buildx plugin。即使環境能以舊建置器繼續，也要確認下方 `build` 指令成功結束。課堂的 `--no-build` 不能代替課前建置。
 
 課前在實際操作電腦下載／編譯映像（Go 路線也要有 `python3` 執行設定產生器）：
