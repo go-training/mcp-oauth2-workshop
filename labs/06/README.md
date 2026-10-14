@@ -8,9 +8,7 @@
 
 ```bash
 export LAB_LANGUAGE=go  # 或 python
-set -a
-source .env
-set +a
+set -a; source .env; set +a
 ```
 
 ## 為什麼要用 Kong MCP Gateway？
@@ -96,7 +94,7 @@ python3 scripts/configure_gateway.py
 docker compose --env-file .env -f labs/06/compose.yml --profile "$LAB_LANGUAGE" up --no-build -d --wait --wait-timeout 120
 ```
 
-設定產生器會把 Gateway 共享憑證寫入 `.env`，Compose 啟動時會讀取它，不需申請另一個 Signet App。若手動更新 `.env` 後要再執行設定產生器，先重新載入 `.env`，避免 shell 中的舊值覆蓋新設定。
+設定產生器會把 Gateway 共享憑證寫入 `.env`，Compose 啟動時會讀取它，不需申請另一個 Signet App。若手動更新 `.env` 後要再執行設定產生器，先執行 `set -a; source .env; set +a` 重新載入，避免 shell 中的舊值覆蓋新設定。
 
 `--wait` 等待容器達到 running／healthy 狀態；它不代表 OAuth 與 MCP 工具呼叫已通過。若啟動逾時先看下方 logs；啟動成功後，繼續做入口檢查。
 

@@ -94,9 +94,7 @@ OAUTH_CLIENT_ID=貼上自己的已啟用ClientID
 保留其他設定，然後在每個需要使用 Client 的終端重新載入：
 
 ```bash
-set -a
-source .env
-set +a
+set -a; source .env; set +a
 export LAB_LANGUAGE=go  # 或 python
 ```
 

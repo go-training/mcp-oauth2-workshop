@@ -97,9 +97,7 @@ uvicorn.run(create_app(Config.from_env(lab)), host=host, port=int(port), access_
 程式與啟動腳本不會自行載入 `.env`。先依教材準備設定，再於 **repo 根目錄** 執行：
 
 ```bash
-set -a
-source .env
-set +a
+set -a; source .env; set +a
 uv sync --project python --frozen
 ./scripts/lab.sh 03 python
 ```

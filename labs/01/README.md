@@ -8,9 +8,7 @@
 
 ```bash
 export LAB_LANGUAGE=go  # 或 python
-set -a
-source .env
-set +a
+set -a; source .env; set +a
 ```
 
 ## 操作 A：連上 MCP（約 4 分鐘）
@@ -38,7 +36,7 @@ curl http://localhost:8000/healthz
 
 1. public、active、Authorization Code 已啟用，Device Flow 已關閉。
 2. 三個 callbacks、三個 resources、五個 scopes 都已保存，完整值見下方補做步驟。
-3. `.env` 的 `OAUTH_CLIENT_ID` 是自己的 App ID；修改後在 Client 終端重新載入。
+3. `.env` 的 `OAUTH_CLIENT_ID` 是自己的 App ID；修改後在 Client 終端執行 `set -a; source .env; set +a` 重新載入。
 
 尚未建立 App 者請由助教協助；需要較久時先用講師提供的備援 public Client ID 跟上主課，仍使用自己的帳號登入。App 編輯及授權紀錄觀察可於課後完成。
 
@@ -76,7 +74,7 @@ curl http://localhost:8000/healthz
    必須包含 `http://`、`localhost`、port 與 `/mcp`；不要加結尾斜線，也不要換成 callback URL 或 `127.0.0.1`。
 
 4. 提交後確認 active，取得 Client ID，進入編輯頁複核流程與所有 URL，再練習修改 App 描述。
-5. 將 ID 存入 `.env` 的 `OAUTH_CLIENT_ID`，在 Client 終端重新載入。
+5. 將 ID 存入 `.env` 的 `OAUTH_CLIENT_ID`，在 Client 終端執行 `set -a; source .env; set +a` 重新載入。
 
 App 建立後立即啟用，不需排隊等講師核准。若現場畫面仍是 pending，請助教確認部署政策，可先做 Lab 02 或使用備援 public Client ID。App 的 public 是 OAuth 類型，不代表所有人都能管理你的 App。
 

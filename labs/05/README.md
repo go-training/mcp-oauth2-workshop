@@ -18,9 +18,7 @@ Public Client 的撤銷請求包含 `client_id` 與要撤銷的 Token。Signet �
 
 ```bash
 export LAB_LANGUAGE=go  # 或 python
-set -a
-source .env
-set +a
+set -a; source .env; set +a
 ```
 
 自己的 App 應已允許 `notes:read`、resource `http://localhost:8000/mcp`，以及 callback `http://127.0.0.1:8765/callback`。
@@ -86,7 +84,7 @@ set +a
 | --- | --- |
 | 登入失敗 | 檢查 public App 是否啟用、scope／resource／callback 是否正確 |
 | Token 檔案已存在 | 改用新檔名，後續指令沿用相同路徑 |
-| revoke 提示缺少 Client ID | 重新載入 `.env`，確認 `OAUTH_CLIENT_ID` 有值 |
+| revoke 提示缺少 Client ID | 執行 `set -a; source .env; set +a` 重新載入，確認 `OAUTH_CLIENT_ID` 有值 |
 | revoke 被拒絕 | 確認 Client ID 與取得 Token 時一致，且 App 仍有效 |
 | 舊版 Server 要求 introspection 憑證 | 更新教材程式；目前版本已移除此需求 |
 | 選做的 call 回 401 | 檢查 Token 是否過期、resource 是否一致；不能只看 401 就認定是撤銷生效 |

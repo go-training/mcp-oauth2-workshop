@@ -70,9 +70,7 @@ sequenceDiagram
 
 ```bash
 export LAB_LANGUAGE=go  # 或 python
-set -a
-source .env
-set +a
+set -a; source .env; set +a
 ```
 
 ## 操作：scope

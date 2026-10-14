@@ -54,14 +54,12 @@ sequenceDiagram
 
 ```bash
 export LAB_LANGUAGE=go  # 或 python
-set -a
-source .env
-set +a
+set -a; source .env; set +a
 ```
 
 ## 進入本關前
 
-先依 [Client App 教學](../../docs/signet-client-app.md) 確認自己的 App 已是 active，已加入 `notes:read notes:write` 與三個 allowed resources；把自己的 Client ID 填入 `.env` 並重新載入。若自己的 App 尚未就緒，使用教學中的講師共用 App 備援，不要跳過授權檢查。
+先依 [Client App 教學](../../docs/signet-client-app.md) 確認自己的 App 已是 active，已加入 `notes:read notes:write` 與三個 allowed resources；把自己的 Client ID 填入 `.env` 並重新載入（`set -a; source .env; set +a`）。若自己的 App 尚未就緒，使用教學中的講師共用 App 備援，不要跳過授權檢查。
 
 ## 操作
 

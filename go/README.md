@@ -87,9 +87,7 @@ HTTP timeout 為讀 header 5 秒、讀取 15 秒、寫入 30 秒、idle 60 秒�
 Go 程式與 `scripts/lab.sh` 不會自行載入 `.env`。請先依根目錄教材準備 `.env`，再於 **repo 根目錄** 執行：
 
 ```bash
-set -a
-source .env
-set +a
+set -a; source .env; set +a
 ./scripts/lab.sh 03 go
 ```
 
