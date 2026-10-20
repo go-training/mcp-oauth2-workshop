@@ -211,6 +211,18 @@ GitHub Actions 在 push、pull request 或手動執行時，會分別跑 Go 格�
 
 獨立的 [Trivy workflow](.github/workflows/trivy.yml) 會在 push、pull request 或手動執行時，掃描 repository 的 Go / Python 相依套件漏洞與 secrets；發現 HIGH 或 CRITICAL 問題即失敗，包含尚無修復版本的漏洞。結果顯示於 Actions log，可透過上方 Trivy badge 獨立追蹤；此掃描不涵蓋建置後的容器映像。
 
+## 其他可替代的 IdP
+
+本課使用 Signet，課後若想自架 Authorization Server，以下方案可作為參考：
+
+| 方案                                         | 特色                                                                                                                                                                                                                                          |
+| -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [Keycloak](https://www.keycloak.org/)        | 最常被推薦的全功能方案，內建使用者管理、登入頁與管理介面，支援 SAML、LDAP 等企業整合。                                                                                                                                                        |
+| [Ory Hydra](https://github.com/ory/hydra)    | 通過 OpenID 認證的 OAuth2 / OIDC provider，採 headless API，本身不含使用者管理，登入與同意頁需自行接上（例如 Ory Kratos 或既有帳號系統）。v25.4.0 起正式支援 [Device Authorization Grant（RFC 8628）](https://www.ory.com/docs/oauth2-oidc/device-authorization)，但驗證碼輸入頁需自行實作。 |
+| [ZITADEL](https://github.com/zitadel/zitadel) | 以 Go 開發、通過 OpenID 認證的全功能方案，內建可自訂的登入頁、自助註冊與管理介面，原生支援多租戶（Organization / Project），並支援 SAML 2.0、LDAP 與 [Device Authorization Grant](https://zitadel.com/docs/guides/integrate/login/oidc/device-authorization)。後端使用 PostgreSQL，授權為 AGPL-3.0。 |
+
+換用其他 IdP 時，請確認它支援本課依賴的能力：PKCE、RFC 8707 `resource` 參數（audience 綁定）、Authorization Server Metadata，以及 RFC 9207 回呼 `iss`。
+
 ## 參考
 
 - [MCP Authorization 2026-07-28](https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization/index)
