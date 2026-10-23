@@ -320,7 +320,7 @@ Lab 05 的撤銷前後對照：
 
 ## 9. Lab 06：Gateway 與 Go backend 的信任邊界
 
-[Dockerfile](Dockerfile) 使用 Go 1.26.9 建置 `./labs/06`，設定 `CGO_ENABLED=0` 與 `-trimpath`，再把單一執行檔放進 distroless nonroot 映像。因此此映像固定執行 Lab 06，無法靠 `LAB` 環境變數改成其他關卡。
+[Dockerfile](Dockerfile) 使用 Go 1.26.10 建置 `./labs/06`，設定 `CGO_ENABLED=0` 與 `-trimpath`，再把單一執行檔放進 distroless nonroot 映像。因此此映像固定執行 Lab 06，無法靠 `LAB` 環境變數改成其他關卡。
 
 [compose.yml](../labs/06/compose.yml) 將公開入口綁到 `127.0.0.1:9000`，Go backend 使用內部網路且不發布 host port。backend 的 resource 設為 `http://localhost:9000/mcp`，符合使用者看到的 Gateway URL。
 
