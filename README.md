@@ -9,6 +9,8 @@
 
 - 活動：[Hello World Dev Conference 2026](https://hwdc.ithome.com.tw/2026/lab/4993)
 - 時間：2026/10/14；13:00–13:30 環境準備，13:30–15:00 正式課程（活動頁另列 10/15 同內容場次）
+- 投影片：[HWDC 2026 Workshop Slides](https://appleboy.github.io/slides/2026/1014-hwdc-workshop/)
+- 文章：[讓 AI Agent、MCP Server、CLI 安全登入：從 PKCE 到 Gateway 的實作工作坊](https://blog.wu-boy.com/2026/10/ai-agent-mcp-cli-secure-login-workshop-zh-tw/)：工作坊的完整文字版。沒到場也能照著在自己的筆電走完 Discovery、PKCE 登入、Token 驗證、scope／audience／subject 權限邊界與 Gateway 集中驗證，並說明離線驗證 JWT 在撤銷上的限制
 
 ## 你需要選擇的三件事
 
