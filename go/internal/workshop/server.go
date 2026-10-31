@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -35,30 +36,43 @@ func env(key, fallback string) string {
 	}
 	return fallback
 }
+
 func LoadConfig(lab int) Config {
-	return Config{lab, env("LISTEN_ADDR", "127.0.0.1:8000"), env("MCP_RESOURCE", "http://localhost:8000/mcp"), os.Getenv("SIGNET_ISSUER"), env("READ_SCOPE", "notes:read"), env("WRITE_SCOPE", "notes:write"), os.Getenv("GATEWAY_SHARED_SECRET")}
+	return Config{
+		lab,
+		env("LISTEN_ADDR", "127.0.0.1:8000"),
+		env("MCP_RESOURCE", "http://localhost:8000/mcp"),
+		os.Getenv("SIGNET_ISSUER"),
+		env("READ_SCOPE", "notes:read"),
+		env("WRITE_SCOPE", "notes:write"),
+		os.Getenv("GATEWAY_SHARED_SECRET"),
+	}
 }
 
 // TrustedURL allows plaintext only for explicitly enabled loopback test fixtures.
 func TrustedURL(raw string) error {
 	u, e := url.Parse(raw)
 	if e != nil || u.Host == "" || u.User != nil || u.Fragment != "" {
-		return fmt.Errorf("invalid trusted URL")
+		return errors.New("invalid trusted URL")
 	}
 	if u.Scheme == "https" {
 		return nil
 	}
-	if os.Getenv("ALLOW_INSECURE_ISSUER") == "1" && u.Scheme == "http" && (u.Hostname() == "127.0.0.1" || u.Hostname() == "localhost" || u.Hostname() == "::1") {
+	if os.Getenv("ALLOW_INSECURE_ISSUER") == "1" && u.Scheme == "http" &&
+		(u.Hostname() == "127.0.0.1" || u.Hostname() == "localhost" || u.Hostname() == "::1") {
 		return nil
 	}
 	return errors.New("issuer and its endpoints must use HTTPS")
 }
 
-var httpClient = &http.Client{Timeout: 5 * time.Second, CheckRedirect: func(_ *http.Request, _ []*http.Request) error { return http.ErrUseLastResponse }}
+var httpClient = &http.Client{
+	Timeout:       5 * time.Second,
+	CheckRedirect: func(_ *http.Request, _ []*http.Request) error { return http.ErrUseLastResponse },
+}
 
 func readJSON(resp *http.Response, out any) error {
 	defer resp.Body.Close()
-	if resp.StatusCode != 200 {
+	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("upstream HTTP %d", resp.StatusCode)
 	}
 	return json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(out)
@@ -72,7 +86,10 @@ func Discover(issuer string) (map[string]any, error) {
 	u, _ := url.Parse(issuer)
 	origin := u.Scheme + "://" + u.Host
 	path := strings.TrimRight(u.Path, "/")
-	candidates := []string{origin + "/.well-known/oauth-authorization-server" + path, origin + "/.well-known/openid-configuration" + path}
+	candidates := []string{
+		origin + "/.well-known/oauth-authorization-server" + path,
+		origin + "/.well-known/openid-configuration" + path,
+	}
 	if path != "" {
 		candidates = append(candidates, origin+path+"/.well-known/openid-configuration")
 	}
@@ -121,10 +138,12 @@ type app struct {
 // ValidateResource prevents sending bearer credentials over non-loopback plaintext HTTP.
 func ValidateResource(raw string) error {
 	u, e := url.Parse(raw)
-	if e != nil || u.Host == "" || u.Path != "/mcp" || u.RawQuery != "" || u.Fragment != "" || u.User != nil {
+	if e != nil || u.Host == "" || u.Path != "/mcp" || u.RawQuery != "" || u.Fragment != "" ||
+		u.User != nil {
 		return errors.New("invalid MCP resource URL")
 	}
-	if u.Scheme == "https" || (u.Scheme == "http" && (u.Hostname() == "localhost" || u.Hostname() == "127.0.0.1")) {
+	if u.Scheme == "https" ||
+		(u.Scheme == "http" && (u.Hostname() == "localhost" || u.Hostname() == "127.0.0.1")) {
 		return nil
 	}
 	return errors.New("resource must use HTTPS or loopback HTTP")
@@ -135,13 +154,19 @@ func NewHandler(ctx context.Context, c Config) (http.Handler, error) {
 		return nil, errors.New("lab must be 1..6")
 	}
 	u, e := url.Parse(c.Resource)
-	if e != nil || u.Host == "" || u.Path != "/mcp" || u.RawQuery != "" || u.Fragment != "" || u.User != nil {
+	if e != nil || u.Host == "" || u.Path != "/mcp" || u.RawQuery != "" || u.Fragment != "" ||
+		u.User != nil {
 		return nil, errors.New("MCP_RESOURCE must be an absolute URL ending exactly in /mcp")
 	}
-	if u.Scheme != "https" && !(u.Scheme == "http" && (u.Hostname() == "localhost" || u.Hostname() == "127.0.0.1")) {
+	if u.Scheme != "https" &&
+		(u.Scheme != "http" || (u.Hostname() != "localhost" && u.Hostname() != "127.0.0.1")) {
 		return nil, errors.New("plaintext resource is allowed only on loopback")
 	}
-	a := &app{cfg: c, metadataURL: u.Scheme + "://" + u.Host + "/.well-known/oauth-protected-resource/mcp", notes: map[string][]string{}}
+	a := &app{
+		cfg:         c,
+		metadataURL: u.Scheme + "://" + u.Host + "/.well-known/oauth-protected-resource/mcp",
+		notes:       map[string][]string{},
+	}
 	if c.Lab >= 2 && c.Lab <= 5 {
 		if e = TrustedURL(c.Issuer); e != nil {
 			return nil, e
@@ -162,9 +187,14 @@ func NewHandler(ctx context.Context, c Config) (http.Handler, error) {
 		}
 	}
 	if c.Lab == 6 && len(c.GatewaySecret) < 32 {
-		return nil, errors.New("Lab 06 requires a random GATEWAY_SHARED_SECRET of at least 32 characters")
+		return nil, errors.New(
+			"lab 06 requires a random GATEWAY_SHARED_SECRET of at least 32 characters",
+		)
 	}
-	s := mcp.NewServer(&mcp.Implementation{Name: fmt.Sprintf("workshop-go-lab%02d", c.Lab), Version: "1.0.0"}, nil)
+	s := mcp.NewServer(
+		&mcp.Implementation{Name: fmt.Sprintf("workshop-go-lab%02d", c.Lab), Version: "1.0.0"},
+		nil,
+	)
 	// JWT aud may be a string or an array. Avoid the boolean schema inferred
 	// from any: some MCP clients reject it during tools/list discovery.
 	identitySchema := map[string]any{
@@ -180,47 +210,84 @@ func NewHandler(ctx context.Context, c Config) (http.Handler, error) {
 		},
 		"required": []string{"subject", "scope", "audience"},
 	}
-	mcp.AddTool(s, &mcp.Tool{Name: "whoami", Description: "Show the verified workshop identity; never returns a raw token", OutputSchema: identitySchema}, func(ctx context.Context, _ *mcp.CallToolRequest, _ struct{}) (*mcp.CallToolResult, identity, error) {
-		return nil, user(ctx), nil
-	})
+	mcp.AddTool(
+		s,
+		&mcp.Tool{
+			Name:         "whoami",
+			Description:  "Show the verified workshop identity; never returns a raw token",
+			OutputSchema: identitySchema,
+		},
+		func(ctx context.Context, _ *mcp.CallToolRequest, _ struct{}) (*mcp.CallToolResult, identity, error) {
+			return nil, user(ctx), nil
+		},
+	)
 	type noteList struct {
 		Notes []string `json:"notes"`
 	}
-	mcp.AddTool(s, &mcp.Tool{Name: "list_notes", Description: "Read your own in-memory workshop notes"}, func(ctx context.Context, _ *mcp.CallToolRequest, _ struct{}) (*mcp.CallToolResult, noteList, error) {
-		a.mu.Lock()
-		defer a.mu.Unlock()
-		return nil, noteList{append([]string{}, a.notes[user(ctx).Subject]...)}, nil
-	})
+	mcp.AddTool(
+		s,
+		&mcp.Tool{Name: "list_notes", Description: "Read your own in-memory workshop notes"},
+		func(ctx context.Context, _ *mcp.CallToolRequest, _ struct{}) (*mcp.CallToolResult, noteList, error) {
+			a.mu.Lock()
+			defer a.mu.Unlock()
+			return nil, noteList{append([]string{}, a.notes[user(ctx).Subject]...)}, nil
+		},
+	)
 	type noteInput struct {
 		Text string `json:"text" jsonschema:"A synthetic workshop note, at most 500 characters"`
 	}
-	mcp.AddTool(s, &mcp.Tool{Name: "create_note", Description: "Create a note; requires notes:write in Lab 04 and later"}, func(ctx context.Context, _ *mcp.CallToolRequest, in noteInput) (*mcp.CallToolResult, noteList, error) {
-		id := user(ctx)
-		if c.Lab >= 4 && !hasScope(id.Scope, c.WriteScope) {
-			return nil, noteList{}, errors.New("insufficient_scope")
-		}
-		if len([]rune(in.Text)) < 1 || len([]rune(in.Text)) > 500 {
-			return nil, noteList{}, errors.New("text must have 1..500 characters")
-		}
-		a.mu.Lock()
-		defer a.mu.Unlock()
-		if len(a.notes[id.Subject]) >= 100 {
-			return nil, noteList{}, errors.New("workshop note limit reached")
-		}
-		a.notes[id.Subject] = append(a.notes[id.Subject], in.Text)
-		return nil, noteList{append([]string{}, a.notes[id.Subject]...)}, nil
-	})
-	h := mcp.NewStreamableHTTPHandler(func(*http.Request) *mcp.Server { return s }, &mcp.StreamableHTTPOptions{Stateless: true, JSONResponse: true})
+	mcp.AddTool(
+		s,
+		&mcp.Tool{
+			Name:        "create_note",
+			Description: "Create a note; requires notes:write in Lab 04 and later",
+		},
+		func(ctx context.Context, _ *mcp.CallToolRequest, in noteInput) (*mcp.CallToolResult, noteList, error) {
+			id := user(ctx)
+			if c.Lab >= 4 && !hasScope(id.Scope, c.WriteScope) {
+				return nil, noteList{}, errors.New("insufficient_scope")
+			}
+			if len([]rune(in.Text)) < 1 || len([]rune(in.Text)) > 500 {
+				return nil, noteList{}, errors.New("text must have 1..500 characters")
+			}
+			a.mu.Lock()
+			defer a.mu.Unlock()
+			if len(a.notes[id.Subject]) >= 100 {
+				return nil, noteList{}, errors.New("workshop note limit reached")
+			}
+			a.notes[id.Subject] = append(a.notes[id.Subject], in.Text)
+			return nil, noteList{append([]string{}, a.notes[id.Subject]...)}, nil
+		},
+	)
+	h := mcp.NewStreamableHTTPHandler(
+		func(*http.Request) *mcp.Server { return s },
+		&mcp.StreamableHTTPOptions{Stateless: true, JSONResponse: true},
+	)
 	mux := http.NewServeMux()
-	mux.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) { w.Write([]byte("ok")) })
+	mux.HandleFunc(
+		"/healthz",
+		func(w http.ResponseWriter, _ *http.Request) {
+			// The response cannot be retried after the client disconnects.
+			_, _ = w.Write([]byte("ok"))
+		},
+	)
 	if c.Lab >= 2 && c.Lab <= 5 {
 		for _, path := range []string{"/.well-known/oauth-protected-resource/mcp", "/.well-known/oauth-protected-resource"} {
 			mux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
-				if r.Method != "GET" {
-					w.WriteHeader(405)
+				if r.Method != http.MethodGet {
+					w.WriteHeader(http.StatusMethodNotAllowed)
 					return
 				}
-				writeJSON(w, 200, map[string]any{"resource": c.Resource, "authorization_servers": []string{c.Issuer}, "scopes_supported": []string{c.ReadScope}, "bearer_methods_supported": []string{"header"}})
+				writeJSON(
+					w,
+					200,
+					map[string]any{
+						"resource":                 c.Resource,
+						"authorization_servers":    []string{c.Issuer},
+						"scopes_supported":         []string{c.ReadScope},
+						"bearer_methods_supported": []string{"header"},
+					},
+				)
 			})
 		}
 	}
@@ -234,30 +301,40 @@ func NewHandler(ctx context.Context, c Config) (http.Handler, error) {
 		mux.ServeHTTP(w, r)
 	}), nil
 }
+
 func hasScope(raw, required string) bool {
-	for _, s := range strings.Fields(raw) {
-		if s == required {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(strings.Fields(raw), required)
 }
+
 func writeJSON(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Cache-Control", "no-store")
 	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(v)
+	// Headers are committed; a disconnected client cannot receive another response.
+	_ = json.NewEncoder(w).Encode(v)
 }
+
 func (a *app) reject(w http.ResponseWriter, status int, code, scope string) {
 	if status == 401 || status == 403 {
-		w.Header().Set("WWW-Authenticate", fmt.Sprintf("Bearer resource_metadata=%q, error=%q, scope=%q", a.metadataURL, code, scope))
+		w.Header().
+			Set("WWW-Authenticate", fmt.Sprintf("Bearer resource_metadata=%q, error=%q, scope=%q", a.metadataURL, code, scope))
 	}
 	slog.Info("authorization denied", "lab", a.cfg.Lab, "status", status, "reason", code)
 	writeJSON(w, status, map[string]string{"error": code})
 }
+
 func (a *app) verify(raw string) (identity, error) {
 	claims := jwt.MapClaims{}
-	_, e := jwt.ParseWithClaims(raw, claims, a.keys.Keyfunc, jwt.WithValidMethods([]string{"RS256"}), jwt.WithIssuer(a.cfg.Issuer), jwt.WithAudience(a.cfg.Resource), jwt.WithExpirationRequired(), jwt.WithIssuedAt())
+	_, e := jwt.ParseWithClaims(
+		raw,
+		claims,
+		a.keys.Keyfunc,
+		jwt.WithValidMethods([]string{"RS256"}),
+		jwt.WithIssuer(a.cfg.Issuer),
+		jwt.WithAudience(a.cfg.Resource),
+		jwt.WithExpirationRequired(),
+		jwt.WithIssuedAt(),
+	)
 	if e != nil {
 		return identity{}, e
 	}
@@ -269,6 +346,7 @@ func (a *app) verify(raw string) (identity, error) {
 	}
 	return identity{sub, scope, claims["aud"], jti}, nil
 }
+
 func (a *app) authorize(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		c := a.cfg
@@ -295,12 +373,21 @@ func (a *app) authorize(next http.Handler) http.Handler {
 			}
 		}
 		if c.Lab == 6 {
-			if subtle.ConstantTimeCompare([]byte(r.Header.Get("X-Workshop-Gateway")), []byte(c.GatewaySecret)) != 1 {
+			if subtle.ConstantTimeCompare(
+				[]byte(r.Header.Get("X-Workshop-Gateway")),
+				[]byte(c.GatewaySecret),
+			) != 1 {
 				a.reject(w, 401, "untrusted_gateway", c.ReadScope)
 				return
 			}
-			id = identity{r.Header.Get("X-MCP-Subject"), r.Header.Get("X-MCP-Scope"), r.Header.Get("X-MCP-Audience"), r.Header.Get("X-MCP-Token-Id")}
-			if id.Subject == "" || r.Header.Get("X-MCP-Issuer") != c.Issuer || id.Audience != c.Resource {
+			id = identity{
+				r.Header.Get("X-MCP-Subject"),
+				r.Header.Get("X-MCP-Scope"),
+				r.Header.Get("X-MCP-Audience"),
+				r.Header.Get("X-MCP-Token-Id"),
+			}
+			if id.Subject == "" || r.Header.Get("X-MCP-Issuer") != c.Issuer ||
+				id.Audience != c.Resource {
 				a.reject(w, 401, "invalid_gateway_identity", c.ReadScope)
 				return
 			}
@@ -309,7 +396,7 @@ func (a *app) authorize(next http.Handler) http.Handler {
 			a.reject(w, 403, "insufficient_scope", c.ReadScope)
 			return
 		}
-		if c.Lab >= 4 && r.Method == "POST" {
+		if c.Lab >= 4 && r.Method == http.MethodPost {
 			b, e := io.ReadAll(http.MaxBytesReader(w, r.Body, 1<<20))
 			if e != nil {
 				writeJSON(w, 413, map[string]string{"error": "request_too_large"})
@@ -322,15 +409,28 @@ func (a *app) authorize(next http.Handler) http.Handler {
 					Name string `json:"name"`
 				} `json:"params"`
 			}
-			if json.Unmarshal(b, &rpc) == nil && rpc.Method == "tools/call" && rpc.Params.Name == "create_note" && !hasScope(id.Scope, c.WriteScope) {
+			if json.Unmarshal(b, &rpc) == nil && rpc.Method == "tools/call" &&
+				rpc.Params.Name == "create_note" &&
+				!hasScope(id.Scope, c.WriteScope) {
 				a.reject(w, 403, "insufficient_scope", c.ReadScope+" "+c.WriteScope)
 				return
 			}
 		}
-		slog.Info("authorized request", "lab", c.Lab, "subject", id.Subject, "token_id", id.TokenID, "method", r.Method)
+		slog.Info(
+			"authorized request",
+			"lab",
+			c.Lab,
+			"subject",
+			id.Subject,
+			"token_id",
+			id.TokenID,
+			"method",
+			r.Method,
+		)
 		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), identityKey{}, id)))
 	})
 }
+
 func Run(lab int) {
 	c := LoadConfig(lab)
 	ctx, cancel := context.WithCancel(context.Background())
@@ -338,12 +438,21 @@ func Run(lab int) {
 	h, e := NewHandler(ctx, c)
 	if e != nil {
 		slog.Error("configuration failed", "error", e)
-		os.Exit(1)
+		cancel()   // os.Exit does not run deferred cleanup.
+		os.Exit(1) //nolint:gocritic // Explicit cancellation above precedes process termination.
 	}
 	slog.Info("MCP ready", "lab", lab, "listen", c.Listen, "resource", c.Resource)
-	srv := &http.Server{Addr: c.Listen, Handler: h, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 30 * time.Second, IdleTimeout: 60 * time.Second}
+	srv := &http.Server{
+		Addr:              c.Listen,
+		Handler:           h,
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       15 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       60 * time.Second,
+	}
 	if e = srv.ListenAndServe(); e != nil {
 		slog.Error("server stopped", "error", e)
+		cancel() // os.Exit does not run deferred cleanup.
 		os.Exit(1)
 	}
 }

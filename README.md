@@ -1,6 +1,6 @@
 # MCP OAuth 2.0 Workshop
 
-[![CI](https://github.com/go-training/mcp-oauth2-workshop/actions/workflows/verify.yml/badge.svg?branch=main)](https://github.com/go-training/mcp-oauth2-workshop/actions/workflows/verify.yml?query=branch%3Amain)
+[![CI](https://github.com/go-training/mcp-oauth2-workshop/actions/workflows/testing.yml/badge.svg?branch=main)](https://github.com/go-training/mcp-oauth2-workshop/actions/workflows/testing.yml?query=branch%3Amain)
 [![Trivy](https://github.com/go-training/mcp-oauth2-workshop/actions/workflows/trivy.yml/badge.svg?branch=main)](https://github.com/go-training/mcp-oauth2-workshop/actions/workflows/trivy.yml?query=branch%3Amain)
 
 讓 AI Agent、MCP Server 與 CLI 安全登入的實作工作坊。

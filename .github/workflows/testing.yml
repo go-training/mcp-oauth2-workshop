@@ -1,30 +1,61 @@
-name: Verify workshop
+name: Lint and Testing
+
 on:
   push:
   pull_request:
   workflow_dispatch:
+
 permissions:
   contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  go-test:
-    name: Go tests
+  lint:
+    name: lint @ Go ${{ matrix.go }}
+    strategy:
+      fail-fast: false
+      matrix:
+        go: ['1.26.x', '1.27.x']
     runs-on: ubuntu-latest
-    timeout-minutes: 10
-    defaults:
-      run:
-        working-directory: go
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
-          go-version-file: go/go.mod
-          cache-dependency-path: go/go.sum
+          go-version: ${{ matrix.go }}
+          cache-dependency-path: |
+            **/go.sum
+            go.tools.sum
+      - name: Lint
+        run: make lint
+
+  test:
+    name: test @ Go ${{ matrix.go }}
+    strategy:
+      fail-fast: false
+      matrix:
+        go: ['1.26.x', '1.27.x']
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: ${{ matrix.go }}
+          cache-dependency-path: |
+            **/go.sum
+            go.tools.sum
       - name: Check formatting
-        run: test -z "$(gofmt -l .)"
+        run: test -z "$(gofmt -l go)"
       - name: Vet
-        run: go vet ./...
-      - name: Test with race detector
-        run: go test -race -count=1 ./...
+        run: make vet
+      - name: Test with race detector and coverage
+        run: make test
+      - name: Build examples
+        run: make build
 
   python-test:
     name: Python tests and Go/Python integration
