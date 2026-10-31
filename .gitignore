@@ -12,3 +12,6 @@ __pycache__/
 *.local.yml
 .DS_Store
 .runtime/
+
+# Generated test coverage
+/go/coverage.txt

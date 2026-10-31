@@ -27,7 +27,10 @@ import (
 
 const protocolVersion = "2026-07-28"
 
-var client = &http.Client{Timeout: 10 * time.Second, CheckRedirect: func(_ *http.Request, _ []*http.Request) error { return http.ErrUseLastResponse }}
+var client = &http.Client{
+	Timeout:       10 * time.Second,
+	CheckRedirect: func(_ *http.Request, _ []*http.Request) error { return http.ErrUseLastResponse },
+}
 
 type storedToken struct {
 	AccessToken string `json:"access_token"`
@@ -42,6 +45,7 @@ func random() string {
 	}
 	return base64.RawURLEncoding.EncodeToString(b)
 }
+
 func load(path string) (storedToken, error) {
 	var t storedToken
 	b, e := os.ReadFile(path)
@@ -51,13 +55,14 @@ func load(path string) (storedToken, error) {
 	e = json.Unmarshal(b, &t)
 	return t, e
 }
+
 func postForm(endpoint string, form url.Values) (map[string]any, error) {
 	resp, e := client.PostForm(endpoint, form)
 	if e != nil {
 		return nil, e
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != 200 {
+	if resp.StatusCode != http.StatusOK {
 		return nil, oauthError(resp)
 	}
 	var m map[string]any
@@ -71,9 +76,11 @@ func oauthError(resp *http.Response) error {
 		Error       string `json:"error"`
 		Description string `json:"error_description"`
 	}
-	json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&body)
+	// Error details are optional; preserve the HTTP status for non-JSON responses.
+	_ = json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&body)
 	return fmt.Errorf("upstream HTTP %d%s", resp.StatusCode, describe(body.Error, body.Description))
 }
+
 func describe(code, description string) string {
 	if code == "" {
 		return ""
@@ -83,6 +90,7 @@ func describe(code, description string) string {
 	}
 	return ": " + code
 }
+
 func login(issuer, resource, id, scope, path string, port int) error {
 	if e := workshop.ValidateResource(resource); e != nil {
 		return e
@@ -91,7 +99,9 @@ func login(issuer, resource, id, scope, path string, port int) error {
 		return errors.New("set OAUTH_CLIENT_ID to a pre-registered public client ID")
 	}
 	if strings.HasPrefix(id, "replace-with-") {
-		return errors.New("OAUTH_CLIENT_ID is still the placeholder; set your Signet Client ID in .env and reload it")
+		return errors.New(
+			"OAUTH_CLIENT_ID is still the placeholder; set your Signet Client ID in .env and reload it",
+		)
 	}
 	if _, e := os.Stat(path); e == nil {
 		return errors.New("token file exists; select a new -token-file")
@@ -119,19 +129,26 @@ func login(issuer, resource, id, scope, path string, port int) error {
 	}
 	redirect := "http://" + ln.Addr().String() + "/callback"
 	received := make(chan url.Values, 1)
-	srv := &http.Server{ReadHeaderTimeout: 5 * time.Second, Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		q := r.URL.Query()
-		if r.URL.Path != "/callback" || subtle.ConstantTimeCompare([]byte(q.Get("state")), []byte(state)) != 1 {
-			http.Error(w, "Invalid callback state", 400)
-			return
-		}
-		select {
-		case received <- q:
-		default:
-		}
-		fmt.Fprint(w, "Callback received. Return to the terminal.")
-	})}
-	go srv.Serve(ln)
+	srv := &http.Server{
+		ReadHeaderTimeout: 5 * time.Second,
+		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			q := r.URL.Query()
+			if r.URL.Path != "/callback" ||
+				subtle.ConstantTimeCompare([]byte(q.Get("state")), []byte(state)) != 1 {
+				http.Error(w, "Invalid callback state", http.StatusBadRequest)
+				return
+			}
+			select {
+			case received <- q:
+			default:
+			}
+			fmt.Fprint(w, "Callback received. Return to the terminal.")
+		}),
+	}
+	go func() {
+		// The login timeout handles a missing callback; Shutdown closes this server.
+		_ = srv.Serve(ln)
+	}()
 	defer func() {
 		// Let the callback handler finish its browser response even on rejection.
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
@@ -144,7 +161,17 @@ func login(issuer, resource, id, scope, path string, port int) error {
 	if !ok {
 		return errors.New("missing authorization_endpoint")
 	}
-	params := url.Values{"response_type": {"code"}, "client_id": {id}, "redirect_uri": {redirect}, "scope": {scope}, "state": {state}, "code_challenge": {challenge}, "code_challenge_method": {"S256"}, "resource": {resource}}
+	params := url.Values{
+		"response_type":         {"code"},
+		"client_id":             {id},
+		"redirect_uri":          {redirect},
+		"scope":                 {scope},
+		"state":                 {state},
+		"code_challenge":        {challenge},
+		"code_challenge_method": {"S256"},
+		"resource":              {resource},
+	}
+	//nolint:forbidigo // This CLI output is part of the workshop instructions and results.
 	fmt.Println("Open this URL in your browser:\n" + authorize + "?" + params.Encode())
 	var callback url.Values
 	select {
@@ -153,20 +180,36 @@ func login(issuer, resource, id, scope, path string, port int) error {
 		return errors.New("login timed out")
 	}
 	// RFC 9207: validate issuer before handling success or error responses.
-	if supported, _ := m["authorization_response_iss_parameter_supported"].(bool); supported && !callback.Has("iss") {
+	if supported, _ := m["authorization_response_iss_parameter_supported"].(bool); supported &&
+		!callback.Has("iss") {
 		return errors.New("callback missing issuer")
 	}
 	if callback.Has("iss") && callback.Get("iss") != issuer {
 		return errors.New("callback issuer mismatch")
 	}
 	if callback.Get("error") != "" || callback.Get("code") == "" {
-		return errors.New("authorization denied" + describe(callback.Get("error"), callback.Get("error_description")))
+		return errors.New(
+			"authorization denied" + describe(
+				callback.Get("error"),
+				callback.Get("error_description"),
+			),
+		)
 	}
 	endpoint, ok := m["token_endpoint"].(string)
 	if !ok {
 		return errors.New("missing token_endpoint")
 	}
-	token, e := postForm(endpoint, url.Values{"grant_type": {"authorization_code"}, "client_id": {id}, "code": {callback.Get("code")}, "redirect_uri": {redirect}, "code_verifier": {verifier}, "resource": {resource}})
+	token, e := postForm(
+		endpoint,
+		url.Values{
+			"grant_type":    {"authorization_code"},
+			"client_id":     {id},
+			"code":          {callback.Get("code")},
+			"redirect_uri":  {redirect},
+			"code_verifier": {verifier},
+			"resource":      {resource},
+		},
+	)
 	if e != nil {
 		return e
 	}
@@ -175,26 +218,33 @@ func login(issuer, resource, id, scope, path string, port int) error {
 	if access == "" || !strings.EqualFold(typ, "bearer") {
 		return errors.New("invalid token response")
 	}
-	if e = os.MkdirAll(filepath.Dir(path), 0700); e != nil {
+	if e = os.MkdirAll(filepath.Dir(path), 0o700); e != nil {
 		return e
 	}
-	f, e := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
+	f, e := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
 	if e != nil {
 		return e
 	}
 	defer f.Close()
 	e = json.NewEncoder(f).Encode(storedToken{access, issuer, resource})
 	if e == nil {
+		//nolint:forbidigo // This CLI output is part of the workshop instructions and results.
 		fmt.Println("Saved access token with mode 0600; token value is not printed.")
 	}
 	return e
 }
+
 func rpc(resource, raw string, payload any, headers http.Header) (*http.Response, error) {
 	b, e := json.Marshal(payload)
 	if e != nil {
 		return nil, e
 	}
-	req, e := http.NewRequestWithContext(context.Background(), "POST", resource, bytes.NewReader(b))
+	req, e := http.NewRequestWithContext(
+		context.Background(),
+		http.MethodPost,
+		resource,
+		bytes.NewReader(b),
+	)
 	if e != nil {
 		return nil, e
 	}
@@ -205,6 +255,7 @@ func rpc(resource, raw string, payload any, headers http.Header) (*http.Response
 	}
 	return client.Do(req)
 }
+
 func call(resource, path, tool, text string, cross bool) error {
 	if e := workshop.ValidateResource(resource); e != nil {
 		return e
@@ -223,16 +274,34 @@ func call(resource, path, tool, text string, cross bool) error {
 		return errors.New("different resource; use -allow-cross-resource only for Lab 04")
 	}
 	// MCP 2026-07-28: no initialize handshake; every request carries its version in headers and _meta.
-	h := http.Header{"Accept": {"application/json, text/event-stream"}, "Mcp-Protocol-Version": {protocolVersion}, "Mcp-Method": {"tools/call"}, "Mcp-Name": {tool}}
+	h := http.Header{
+		"Accept":               {"application/json, text/event-stream"},
+		"Mcp-Protocol-Version": {protocolVersion},
+		"Mcp-Method":           {"tools/call"},
+		"Mcp-Name":             {tool},
+	}
 	args := map[string]any{}
 	if tool == "create_note" {
 		args["text"] = text
 	}
-	resp, e := rpc(resource, t.AccessToken, map[string]any{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": map[string]any{"name": tool, "arguments": args, "_meta": map[string]any{
-		"io.modelcontextprotocol/protocolVersion":    protocolVersion,
-		"io.modelcontextprotocol/clientInfo":         map[string]string{"name": "workshop-go-probe", "version": "1.0.0"},
-		"io.modelcontextprotocol/clientCapabilities": map[string]any{},
-	}}}, h)
+	resp, e := rpc(
+		resource,
+		t.AccessToken,
+		map[string]any{
+			"jsonrpc": "2.0",
+			"id":      1,
+			"method":  "tools/call",
+			"params": map[string]any{"name": tool, "arguments": args, "_meta": map[string]any{
+				"io.modelcontextprotocol/protocolVersion": protocolVersion,
+				"io.modelcontextprotocol/clientInfo": map[string]string{
+					"name":    "workshop-go-probe",
+					"version": "1.0.0",
+				},
+				"io.modelcontextprotocol/clientCapabilities": map[string]any{},
+			}},
+		},
+		h,
+	)
 	if e != nil {
 		return e
 	}
@@ -241,8 +310,9 @@ func call(resource, path, tool, text string, cross bool) error {
 	if e != nil {
 		return e
 	}
+	//nolint:forbidigo // This CLI output is part of the workshop instructions and results.
 	fmt.Println(resp.StatusCode, resp.Header.Get("WWW-Authenticate"), string(b))
-	if resp.StatusCode != 200 {
+	if resp.StatusCode != http.StatusOK {
 		return errors.New("tool call denied")
 	}
 	var result struct {
@@ -259,6 +329,7 @@ func call(resource, path, tool, text string, cross bool) error {
 	}
 	return nil
 }
+
 func main() {
 	command := flag.String("command", "call", "login, call, revoke, metadata")
 	issuer := flag.String("issuer", os.Getenv("SIGNET_ISSUER"), "trusted Signet issuer")
@@ -306,14 +377,24 @@ func main() {
 					e = errors.New("missing revocation_endpoint")
 				} else {
 					var resp *http.Response
-					resp, e = client.PostForm(endpoint, url.Values{"client_id": {*id}, "token": {t.AccessToken}, "token_type_hint": {"access_token"}})
+					resp, e = client.PostForm(
+						endpoint,
+						url.Values{
+							"client_id":       {*id},
+							"token":           {t.AccessToken},
+							"token_type_hint": {"access_token"},
+						},
+					)
 					if e == nil {
-						if resp.StatusCode != 200 {
+						if resp.StatusCode != http.StatusOK {
 							e = fmt.Errorf("revocation failed: %w", oauthError(resp))
 						}
 						resp.Body.Close()
 						if e == nil {
-							fmt.Println("Revocation accepted. Offline JWT verification may still accept this token until expiry.")
+							//nolint:forbidigo // This CLI output is part of the workshop instructions and results.
+							fmt.Println(
+								"Revocation accepted. Offline JWT verification may still accept this token until expiry.",
+							)
 						}
 					}
 				}

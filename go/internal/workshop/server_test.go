@@ -58,7 +58,10 @@ func TestTrustedURL(t *testing.T) {
 }
 
 func TestHandlerBoundary(t *testing.T) {
-	h, err := NewHandler(context.Background(), Config{Lab: 1, Resource: "http://localhost:8000/mcp"})
+	h, err := NewHandler(
+		context.Background(),
+		Config{Lab: 1, Resource: "http://localhost:8000/mcp"},
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
